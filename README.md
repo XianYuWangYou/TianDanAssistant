@@ -1,8 +1,14 @@
-
+import os
+import json
+import tkinter as tk
+from tkinter import filedialog, messagebox
+from docx import Document
+from openpyxl import load_workbook
+import docx2pdf
+import PyPDF2
 
 # 填单助手 (TianDanAssistant)
 
-![Gitee](https://img.shields.io/gitee/license/xianyuwangyou/TianDanAssistant)
 ![Python](https://img.shields.io/badge/python-3.7%2B-blue)
 
 填单助手是一个自动化文档处理工具，可以自动识别Word和Excel模板中的占位符，并根据用户输入的信息批量生成填写完成的文档。
@@ -28,7 +34,7 @@
 
 在使用前，请确保已安装所有必要的依赖库：
 
-```bash
+```
 pip install -r requirements.txt
 ```
 
@@ -53,6 +59,17 @@ pip install -r requirements.txt
 
 5. 选择输出目录并生成填写完成的文档
 
+## 软件界面预览
+
+以下是填单助手的界面预览图：
+
+<div style="display: flex; flex-wrap: wrap; gap: 10px;">
+  <img src="images/pic1.PNG" alt="主界面" style="width: 45%;">
+  <img src="images/pic2.PNG" alt="占位符识别界面" style="width: 45%;">
+  <img src="images/pic3.PNG" alt="信息填写界面" style="width: 45%;">
+  <img src="images/pic4.PNG" alt="处理完成界面" style="width: 45%;">
+</div>
+
 ## 配置文件说明
 
 - `config.json`：保存用户输入信息和程序设置
@@ -60,7 +77,7 @@ pip install -r requirements.txt
 
 ## 开发者信息
 
-开发者：咸鱼网友 (XianYuWengyou)
+开发者：咸鱼网友 (XianYuWangyou)
 
 ## 许可证
 

@@ -3750,11 +3750,11 @@ class DocumentProcessorUI:
         help_text.insert(tk.END, "数据录入：选择方案，填写内容，按照文档组合批量形成文档。\n\n", "content")
                 
         # 占位符格式
-        help_text.insert(tk.END, "四、占位符格式\n", "section")
+        help_text.insert(tk.END, "三、占位符格式\n", "section")
         help_text.insert(tk.END, "格式为{占位符名称}，如{姓名}，不可包含特殊字符\n\n", "content")
         
         # 注意事项
-        help_text.insert(tk.END, "五、注意事项\n", "section")
+        help_text.insert(tk.END, "四、注意事项\n", "section")
         help_text.insert(tk.END, "1.生成文档保存在指定目录，命名为\"原文件名_已填充.扩展名\"\n", "content")
         help_text.insert(tk.END, "2.请使用docx、xlsx文件进行操作\n\n", "content")
         
