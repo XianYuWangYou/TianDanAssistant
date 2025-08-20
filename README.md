@@ -1,11 +1,3 @@
-import os
-import json
-import tkinter as tk
-from tkinter import filedialog, messagebox
-from docx import Document
-from openpyxl import load_workbook
-import docx2pdf
-import PyPDF2
 
 # 填单助手 (TianDanAssistant)
 
