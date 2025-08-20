@@ -67,6 +67,14 @@ pip install -r requirements.txt
 - `config.json`：保存用户输入信息和程序设置
 - `schemes.json`：定义不同的处理方案，包括模板文件列表和占位符顺序
 
+## 支持与赞助
+
+如果您觉得本项目对您有帮助，欢迎通过以下方式支持开发者：
+
+<div style="text-align: center;">
+  <img src="images/捐赠.jpg" alt="支持与赞助" style="width: 400px;">
+</div>
+
 ## 开发者信息
 
 开发者：咸鱼网友 (XianYuWangyou)
