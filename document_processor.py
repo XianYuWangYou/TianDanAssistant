@@ -591,7 +591,7 @@ class DocumentProcessorUI:
         self.root = root
         # 将窗口居中显示
         self.center_window()
-        self.root.title("填单助手v1.1 By:www.52pojie.cn@xianyuwangyou")
+        self.root.title("填单助手 By:www.52pojie.cn@xianyuwangyou")
         self.root.geometry("800x600")
         self.root.resizable(False, False)
         
