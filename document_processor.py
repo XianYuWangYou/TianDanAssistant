@@ -933,6 +933,10 @@ class DocumentProcessorUI:
         self.open_folder_button = ttk.Button(doc_button_frame, text="打开文档目录", command=self.open_selected_folder, state=tk.DISABLED)
         self.open_folder_button.pack(side=tk.LEFT, padx=(10, 0))
 
+        # 刷新文档目录
+        self.refresh_folder_button = ttk.Button(doc_button_frame, text="刷新文档目录", command=self.refresh_folder_info)
+        self.refresh_folder_button.pack(side=tk.LEFT, padx=(10, 0))
+        
         # 文档信息显示区域
         self.doc_info_text = tk.Text(right_frame, height=15, wrap=tk.WORD)
         self.doc_info_text.grid(row=1, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(0, 10))
@@ -1104,6 +1108,17 @@ class DocumentProcessorUI:
                 os.startfile(self.selected_template_folder)
             except Exception as e:
                 self.log_and_status(f"打开文件夹时出错: {str(e)}")
+        else:
+            self.log_and_status("请先选择文档目录")
+
+    def refresh_folder_info(self):
+        """
+        刷新文档目录信息显示
+        """
+        # 检查是否已选择文档目录
+        if hasattr(self, 'selected_template_folder') and self.selected_template_folder:
+            self.display_folder_info(self.selected_template_folder)
+            self.log_and_status("文档目录信息已刷新")
         else:
             self.log_and_status("请先选择文档目录")
 
