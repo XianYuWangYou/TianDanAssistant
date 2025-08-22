@@ -99,4 +99,4 @@ pip install -r requirements.txt
 
 ## 许可证
 
-本项目采用MIT许可证，详情请参见[LICENSE](LICENSE)文件。
+本项目采用GNU General Public License v3.0许可证，详情请参见[LICENSE](LICENSE)文件。
