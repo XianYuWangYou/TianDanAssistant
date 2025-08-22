@@ -133,5 +133,17 @@
       "贷款用途": "1"
     }
   },
-  "last_template_dir": "C:/Users/wangzongrong/Desktop/格式化模板"
+  "last_template_dir": "C:/Users/wangzongrong/Desktop/对公开户表单资料",
+  "placeholder_configs": {
+    "与借款人关系": {
+      "type": "entry"
+    },
+    "贷款用途": {
+      "type": "combobox",
+      "options": [
+        "生产经营",
+        "综合消费"
+      ]
+    }
+  }
 }

@@ -581,6 +581,49 @@ class DocumentProcessor:
                     status_callback(error_msg)
                 print(f"删除文件 {pdf_path} 时出错: {str(e)}")
 
+    def get_placeholder_config(self, placeholder):
+        """
+        获取占位符配置
+        :param placeholder: 占位符名称
+        :return: 配置字典
+        """
+        try:
+            if os.path.exists("config.json"):
+                with open("config.json", "r", encoding="utf-8") as f:
+                    config = json.load(f)
+                return config.get("placeholder_configs", {}).get(placeholder, {})
+            else:
+                return {}
+        except Exception as e:
+            print(f"加载占位符配置时出错: {e}")
+            return {}
+    
+    def save_placeholder_config(self, placeholder, config):
+        """
+        保存占位符配置
+        :param placeholder: 占位符名称
+        :param config: 配置字典
+        """
+        try:
+            # 读取现有配置
+            main_config = {}
+            if os.path.exists("config.json"):
+                with open("config.json", "r", encoding="utf-8") as f:
+                    main_config = json.load(f)
+            
+            # 确保placeholder_configs键存在
+            if "placeholder_configs" not in main_config:
+                main_config["placeholder_configs"] = {}
+            
+            # 保存当前占位符配置
+            main_config["placeholder_configs"][placeholder] = config
+            
+            # 保存配置
+            with open("config.json", "w", encoding="utf-8") as f:
+                json.dump(main_config, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            print(f"保存占位符配置时出错: {e}")
+
 
 class DocumentProcessorUI:
     def __init__(self, root):
@@ -608,6 +651,49 @@ class DocumentProcessorUI:
         
         self.setup_ui()
     
+    def get_placeholder_config(self, placeholder):
+        """
+        获取占位符配置
+        :param placeholder: 占位符名称
+        :return: 配置字典
+        """
+        try:
+            if os.path.exists("config.json"):
+                with open("config.json", "r", encoding="utf-8") as f:
+                    config = json.load(f)
+                return config.get("placeholder_configs", {}).get(placeholder, {})
+            else:
+                return {}
+        except Exception as e:
+            print(f"加载占位符配置时出错: {e}")
+            return {}
+    
+    def save_placeholder_config(self, placeholder, config):
+        """
+        保存占位符配置
+        :param placeholder: 占位符名称
+        :param config: 配置字典
+        """
+        try:
+            # 读取现有配置
+            main_config = {}
+            if os.path.exists("config.json"):
+                with open("config.json", "r", encoding="utf-8") as f:
+                    main_config = json.load(f)
+            
+            # 确保placeholder_configs键存在
+            if "placeholder_configs" not in main_config:
+                main_config["placeholder_configs"] = {}
+            
+            # 保存当前占位符配置
+            main_config["placeholder_configs"][placeholder] = config
+            
+            # 保存配置
+            with open("config.json", "w", encoding="utf-8") as f:
+                json.dump(main_config, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            print(f"保存占位符配置时出错: {e}")
+    
     def center_window(self):
         """
         将窗口居中显示在屏幕中央
@@ -624,6 +710,9 @@ class DocumentProcessorUI:
         x = (screen_width - width) // 2
         y = (screen_height - height) // 2
         
+        # 设置窗口位置和尺寸
+        self.root.geometry(f"{width}x{height}+{x}+{y}")
+
         # 设置窗口位置和尺寸
         self.root.geometry(f"{width}x{height}+{x}+{y}")
     
@@ -824,10 +913,6 @@ class DocumentProcessorUI:
         self.template_maker_frame = ttk.Frame(self.notebook)
         self.notebook.add(self.template_maker_frame, text="配置文档模板")
         
-        # 创建使用说明标签页
-        self.help_frame = ttk.Frame(self.notebook)
-        self.notebook.add(self.help_frame, text="使用说明")
-        
         # 创建状态栏（提前创建，确保其他组件可以使用）
         self.status_bar = ttk.Label(self.root, text="就绪", relief=tk.SUNKEN, anchor=tk.W)
         self.status_bar.pack(side=tk.BOTTOM, fill=tk.X)
@@ -835,8 +920,12 @@ class DocumentProcessorUI:
         self.setup_main_tab()
         self.setup_config_tab()
         self.setup_template_maker_tab()
-        self.setup_help_tab()
+        # self.setup_help_tab()
         
+        # 创建状态栏
+        # self.status_bar = ttk.Label(self.root, text="就绪", relief=tk.SUNKEN, anchor=tk.W)
+        # self.status_bar.pack(side=tk.BOTTOM, fill=tk.X)
+
         # 创建状态栏
         # self.status_bar = ttk.Label(self.root, text="就绪", relief=tk.SUNKEN, anchor=tk.W)
         # self.status_bar.pack(side=tk.BOTTOM, fill=tk.X)
@@ -3465,6 +3554,15 @@ class DocumentProcessorUI:
             entry.configure(state='readonly')  # 只读状态
             self.input_fields[placeholder] = entry
             
+            # 设置按钮（在↑箭头左边）
+            setting_button = ttk.Button(
+                self.config_input_scrollable_frame,
+                text="⚙",
+                width=3,
+                command=lambda p=placeholder: self.configure_placeholder_type(p)
+            )
+            setting_button.grid(row=i, column=2, pady=2, padx=(5, 0))
+            
             # 上移按钮（第一个元素不显示）
             if i > 0:
                 up_button = ttk.Button(
@@ -3473,7 +3571,7 @@ class DocumentProcessorUI:
                     width=3,
                     command=lambda idx=i: self.move_up(idx)
                 )
-                up_button.grid(row=i, column=2, pady=2, padx=(5, 0))
+                up_button.grid(row=i, column=3, pady=2, padx=(5, 0))
         
         # 添加日期字段（自动生成，仅显示不提供输入）
         date_row = len(self.ordered_placeholders)
@@ -3483,6 +3581,94 @@ class DocumentProcessorUI:
         
         # 配置输入区域的列权重
         self.config_input_scrollable_frame.columnconfigure(1, weight=1)
+    
+    def configure_placeholder_type(self, placeholder):
+        """
+        配置占位符的输入框类型
+        :param placeholder: 占位符名称
+        """
+        # 创建配置对话框
+        config_dialog = tk.Toplevel(self.root)
+        config_dialog.title(f"配置占位符 '{placeholder}'")
+        config_dialog.geometry("300x200")
+        config_dialog.resizable(False, False)
+        
+        # 居中显示对话框
+        self.center_dialog(config_dialog, 300, 200)
+        config_dialog.transient(self.root)
+        config_dialog.grab_set()
+        
+        # 设置窗口图标
+        self.set_dialog_icon(config_dialog)
+        
+        # 获取当前占位符配置（如果有的话）
+        current_config = self.get_placeholder_config(placeholder)
+        current_type = current_config.get("type", "entry")  # 默认为普通录入框
+        current_options = current_config.get("options", [])
+        
+        # 类型选择
+        ttk.Label(config_dialog, text="输入框类型:").grid(row=0, column=0, sticky=tk.W, padx=5, pady=5)
+        
+        type_var = tk.StringVar(value=current_type)
+        type_frame = ttk.Frame(config_dialog)
+        type_frame.grid(row=0, column=1, sticky=(tk.W, tk.E), padx=5, pady=5)
+        
+        entry_radio = ttk.Radiobutton(type_frame, text="普通录入框", variable=type_var, value="entry")
+        entry_radio.pack(anchor=tk.W)
+        
+        combobox_radio = ttk.Radiobutton(type_frame, text="下拉框", variable=type_var, value="combobox")
+        combobox_radio.pack(anchor=tk.W)
+        
+        # 下拉框选项输入区域
+        options_frame = ttk.Frame(config_dialog)
+        options_frame.grid(row=1, column=0, columnspan=2, sticky=(tk.W, tk.E), padx=5, pady=5)
+        
+        ttk.Label(options_frame, text="下拉选项 (格式: 选项1,选项2,选项3...)(使用英文逗号):").grid(row=0, column=0, sticky=tk.W)
+    
+        options_text = tk.Text(options_frame, height=3, width=30)
+        options_text.grid(row=1, column=0, sticky=(tk.W, tk.E), pady=5)
+        
+        # 如果当前是下拉框类型，填充已有选项
+        if current_type == "combobox" and current_options:
+            options_text.insert("1.0", ",".join(current_options))
+        
+        # 根据选择的类型启用/禁用选项输入框
+        def on_type_change(*args):
+            if type_var.get() == "combobox":
+                options_text.config(state="normal", bg="white")
+            else:
+                options_text.config(state="disabled", bg="#f0f0f0")
+        
+        type_var.trace("w", on_type_change)
+        on_type_change()  # 初始化状态
+        
+        # 按钮区域
+        button_frame = ttk.Frame(config_dialog)
+        button_frame.grid(row=2, column=0, columnspan=2, pady=5)
+        
+        def save_config():
+            # 保存配置
+            config = {
+                "type": type_var.get()
+            }
+            
+            if config["type"] == "combobox":
+                # 解析选项，支持逗号分隔
+                options_text_content = options_text.get("1.0", tk.END).strip()
+                if options_text_content:
+                    # 按逗号分割并去除空格
+                    options = [opt.strip() for opt in options_text_content.split(",") if opt.strip()]
+                    config["options"] = options
+                else:
+                    config["options"] = []
+            
+            self.save_placeholder_config(placeholder, config)
+            config_dialog.destroy()
+            # 重新创建输入字段以反映更改
+            self.config_create_input_fields()
+        
+        ttk.Button(button_frame, text="确定", command=save_config).pack(side=tk.LEFT, padx=5)
+        ttk.Button(button_frame, text="取消", command=config_dialog.destroy).pack(side=tk.LEFT, padx=5)
     
     def create_input_fields(self):
         """
@@ -3498,10 +3684,21 @@ class DocumentProcessorUI:
             # 标签
             ttk.Label(self.input_scrollable_frame, text=f"{placeholder}:").grid(row=i, column=0, sticky=tk.W, pady=2)
             
-            # 输入框
-            entry = ttk.Entry(self.input_scrollable_frame, width=25)
-            entry.grid(row=i, column=1, sticky=(tk.W, tk.E), pady=2, padx=(5, 0))
-            self.input_fields[placeholder] = entry
+            # 获取占位符配置
+            config = self.get_placeholder_config(placeholder)
+            
+            # 根据配置创建不同类型的输入控件
+            if config.get("type") == "combobox":
+                # 创建下拉框
+                options = config.get("options", [])
+                combobox = ttk.Combobox(self.input_scrollable_frame, values=options, width=25, state="readonly")
+                combobox.grid(row=i, column=1, sticky=(tk.W, tk.E), pady=2, padx=(5, 0))
+                self.input_fields[placeholder] = combobox
+            else:
+                # 创建普通文本框
+                entry = ttk.Entry(self.input_scrollable_frame, width=25)
+                entry.grid(row=i, column=1, sticky=(tk.W, tk.E), pady=2, padx=(5, 0))
+                self.input_fields[placeholder] = entry
             
             # 注意：已移除上移按钮，简化用户界面
         

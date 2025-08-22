@@ -1,7 +1,8 @@
-
 # 填单助手 (TianDanAssistant)
 
-![Python](https://img.shields.io/badge/python-3.7%2B-blue)
+![公众号](https://img.shields.io/badge/公众号-大融写字的地方-red)
+![吾爱破解](https://img.shields.io/badge/吾爱破解-XianYuWangYou-yellow)
+![Python](https://img.shields.io/badge/python-3.10%2B-n)
 
 填单助手是一个自动化文档处理工具，可以自动识别Word和Excel模板中的占位符，并根据用户输入的信息批量生成填写完成的文档。
 
@@ -11,7 +12,10 @@
 - **批量处理**：一次性处理多个模板文件，提高工作效率
 - **多格式支持**：支持Word文档和Excel表格的占位符替换
 - **界面友好**：提供图形用户界面，操作简单直观
-- **配置保存**：支持保存常用的输入信息，方便下次使用
+- **配置保存**：支持保存常用的输入信息和处理方案，方便下次使用
+- **方案管理**：支持创建和管理多个处理方案，每个方案可包含不同的模板文件和占位符顺序
+- **占位符编辑**：支持在模板中添加、修改和删除占位符
+- **PDF转换**：支持将生成的Word文档转换为PDF格式
 
 ## 应用场景
 
@@ -43,23 +47,37 @@ pip install -r requirements.txt
    python document_processor.py
    ```
 
-2. 在图形界面中选择模板文件（Word或Excel文件）
+2. 程序包含三个主要功能标签页：
+   - **数据录入**：选择模板文件，填写信息并生成文档
+   - **方案配置**：创建和管理处理方案，保存模板文件列表和占位符顺序
+   - **模板制作**：管理和编辑模板中的占位符
 
-3. 程序会自动识别所有模板中的占位符并显示在输入界面中
+3. 在"数据录入"标签页中：
+   - 选择已保存的方案
+   - 程序生成录入区
+   - 填写相应的信息到对应录入框中
+   - 选择输出目录并生成填写完成的文档
 
-4. 填写相应的信息到对应占位符中
+4. 在"方案配置"标签页中：
+   - 创建新的文档组合方案或加载已有的方案
+   - 添加文档模板并检测其中的占位符
+   - 调整占位符顺序、种类
+   - 保存方案以便在数据录入页中调用
 
-5. 选择输出目录并生成填写完成的文档
+5. 在"模板制作"标签页中：
+   - 选择模板文件夹
+   - 添加新占位符或修改现有占位符
+   - 打开文档后，将占位符复制到指定位置
+   - 保存模板文档
 
 ## 软件界面预览
 
 以下是填单助手的界面预览图：
 
 <div style="display: flex; flex-wrap: wrap; gap: 10px;">
-  <img src="images/pic1.PNG" alt="主界面" style="width: 45%;">
-  <img src="images/pic2.PNG" alt="占位符识别界面" style="width: 45%;">
-  <img src="images/pic3.PNG" alt="信息填写界面" style="width: 45%;">
-  <img src="images/pic4.PNG" alt="处理完成界面" style="width: 45%;">
+  <img src="images/软件预览/数据录入.PNG" alt="主界面" style="width: 80%;">
+  <img src="images/软件预览/配置文档组合.PNG" alt="配置文档组合" style="width: 80%;">
+  <img src="images/软件预览/配置文档模板.PNG" alt="信息填写界面" style="width: 80%;">
 </div>
 
 ## 配置文件说明
@@ -72,7 +90,7 @@ pip install -r requirements.txt
 如果您觉得本项目对您有帮助，欢迎通过以下方式支持开发者：
 
 <div style="text-align: center;">
-  <img src="images/捐赠.jpg" alt="支持与赞助" style="width: 400px;">
+  <img src="images/捐赠.jpg" alt="支持与赞助" style="width: 50%;">
 </div>
 
 ## 开发者信息
