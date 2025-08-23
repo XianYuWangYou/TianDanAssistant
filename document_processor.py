@@ -2,10 +2,13 @@ import os
 import re
 import json
 import threading
-import tkinter as tk
 from datetime import datetime
-from tkinter import filedialog, ttk
 from docx import Document
+import tkinter as tk
+from tkinter import filedialog, ttk
+
+# 直接导入所有需要的模块，确保PyInstaller能够正确打包
+import docx
 from openpyxl import Workbook, load_workbook
 from docx2pdf import convert
 from PyPDF2 import PdfMerger
@@ -16,15 +19,11 @@ PDF_CONVERSION_AVAILABLE = True
 PDF_MERGING_AVAILABLE = True
 
 class DocumentProcessor:
-    """
-    文档处理器类，负责处理Word和Excel文档的占位符提取和替换操作
-    """
     def __init__(self):
         """
         初始化文档处理器
         """
         self.placeholders = set()  # 存储所有占位符
-
         self.user_inputs = {}  # 存储用户输入
         self.template_files = []  # 存储选中的模板文件
 
@@ -181,7 +180,7 @@ class DocumentProcessor:
 
     def replace_text_in_paragraph(self, paragraph, replacements):
         """
-        在段落中替换文本
+        在段落中替换文本（改进版，更好地保持格式）
         :param paragraph: 段落对象
         :param replacements: 替换字典
         """
@@ -627,10 +626,6 @@ class DocumentProcessor:
 
 
 class DocumentProcessorUI:
-    """
-    文档处理器用户界面类，提供图形界面用于配置模板、输入数据并生成文档
-    负责处理用户交互、界面更新和调用DocumentProcessor执行具体的文档处理任务
-    """
     def __init__(self, root):
         """
         初始化用户界面
@@ -640,7 +635,7 @@ class DocumentProcessorUI:
         # 将窗口居中显示
         self.center_window()
         self.root.title("填单助手 By:www.52pojie.cn@xianyuwangyou")
-        self.root.geometry("800x650")
+        self.root.geometry("800x600")
         self.root.resizable(False, False)
         
         # 设置窗口图标
@@ -705,7 +700,7 @@ class DocumentProcessorUI:
         """
         # 使用固定的窗口尺寸
         width = 800
-        height = 650
+        height = 600
         
         # 获取屏幕尺寸
         screen_width = self.root.winfo_screenwidth()
@@ -925,6 +920,15 @@ class DocumentProcessorUI:
         self.setup_main_tab()
         self.setup_config_tab()
         self.setup_template_maker_tab()
+        # self.setup_help_tab()
+        
+        # 创建状态栏
+        # self.status_bar = ttk.Label(self.root, text="就绪", relief=tk.SUNKEN, anchor=tk.W)
+        # self.status_bar.pack(side=tk.BOTTOM, fill=tk.X)
+
+        # 创建状态栏
+        # self.status_bar = ttk.Label(self.root, text="就绪", relief=tk.SUNKEN, anchor=tk.W)
+        # self.status_bar.pack(side=tk.BOTTOM, fill=tk.X)
 
     def setup_template_maker_tab(self):
         """
@@ -949,7 +953,11 @@ class DocumentProcessorUI:
         # 左侧内容：占位符列表
         left_frame.columnconfigure(0, weight=1)
         left_frame.rowconfigure(1, weight=1)
-
+        
+        # 占位符操作区域（现在是空的，因为我们把按钮移到了下方）
+        placeholder_button_frame = ttk.Frame(left_frame)
+        placeholder_button_frame.grid(row=0, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 10))
+        
         # 占位符列表框
         self.placeholder_listbox = tk.Listbox(left_frame, height=15)
         self.placeholder_listbox.grid(row=1, column=0, columnspan=2, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(0, 10))
@@ -962,7 +970,7 @@ class DocumentProcessorUI:
         self.placeholder_listbox.insert(tk.END, "日期")
         self.placeholder_listbox.itemconfig(0, {'fg': 'gray'})
         
-        # 添加新占位符按钮
+        # 添加新占位符按钮（移动到列表上方）
         self.add_placeholder_button_middle = ttk.Button(left_frame, text="添加新占位符", command=self.add_new_placeholder, state=tk.DISABLED)
         self.add_placeholder_button_middle.grid(row=0, column=0, columnspan=2, pady=(0, 10), sticky=(tk.W, tk.E))
         
@@ -973,6 +981,10 @@ class DocumentProcessorUI:
         self.placeholder_listbox.bind("<Double-Button-1>", self.edit_placeholder)
         # 添加选择事件绑定
         self.placeholder_listbox.bind("<<ListboxSelect>>", self.on_placeholder_select)
+        
+        # 初始化时添加默认的日期占位符（但标记为不可用）
+        self.placeholder_listbox.insert(tk.END, "日期")
+        self.placeholder_listbox.itemconfig(0, {'fg': 'gray'})
         
         # 按钮区域：刷新占位符和复制占位符到剪贴板按钮（垂直排列，宽度一致）
         placeholder_buttons_frame = ttk.Frame(left_frame)
@@ -1036,7 +1048,6 @@ class DocumentProcessorUI:
 3. 打开需要编辑的文件，在左侧选择占位符，然后点击"复制占位符到剪贴板"按钮
 3. 按Ctrl+V粘贴占位符到需要填充的位置
 4. 编辑完成后，保存文件。
-Tips:打开文档后请不点击“刷新占位符”按钮
         """.strip()
         
         ttk.Label(instruction_frame, text=instructions, foreground="gray").pack(anchor=tk.W)
@@ -1533,6 +1544,214 @@ Tips:打开文档后请不点击“刷新占位符”按钮
             except:
                 pass
 
+    def select_template_file(self):
+        """
+        选择模板文件
+        """
+        # 获取上次使用的模板目录
+        last_template_dir = self.load_last_template_dir()
+        
+        file_path = filedialog.askopenfilename(
+            title="选择模板文件",
+            filetypes=[
+                ("Word文档", "*.docx"),
+                ("Excel文件", "*.xlsx"),
+                ("所有文件", "*.*")
+            ],
+            initialdir=last_template_dir
+        )
+        
+        if file_path:
+            # 保存所选文件的目录
+            file_dir = os.path.dirname(file_path)
+            self.save_last_template_dir(file_dir)
+            
+            self.load_template_file(file_path)
+        """
+        加载Word模板文件
+        :param file_path: Word文档路径
+        """
+        try:
+            # 保存当前文件路径
+            self.current_template_file = file_path
+            self.current_file_label.config(text=f"当前文件: {os.path.basename(file_path)}")
+            
+            # 显示文档信息
+            self.display_word_doc_info(file_path)
+            
+            print(f"已加载Word文档: {file_path}")
+            print("点击'在Word中编辑'按钮开始编辑文档")
+        except Exception as e:
+            print(f"加载Word文档时出错: {str(e)}")
+
+    def load_docx_content(self):
+        """
+        加载Word文档内容
+        """
+        if not hasattr(self, 'current_template_file') or not self.current_template_file:
+            print("请先选择一个Word文档")
+            return
+        
+        try:
+            # 显示文档信息
+            self.display_word_doc_info(self.current_template_file)
+        except Exception as e:
+            print(f"加载Word文档时出错: {str(e)}")
+
+    def display_word_doc_info(self, file_path):
+        """
+        显示Word文档信息
+        :param file_path: Word文档路径
+        """
+        try:
+            doc = Document(file_path)
+            
+            # 收集文档信息
+            info_lines = []
+            info_lines.append(f"文件名: {os.path.basename(file_path)}")
+            info_lines.append(f"文件路径: {file_path}")
+            info_lines.append(f"段落数量: {len(doc.paragraphs)}")
+            info_lines.append(f"表格数量: {len(doc.tables)}")
+            
+            # 显示前几个段落的内容预览
+            info_lines.append("\n内容预览:")
+            for i, paragraph in enumerate(doc.paragraphs[:10]):  # 只显示前10个段落
+                if paragraph.text.strip():
+                    info_lines.append(f"  段落 {i+1}: {paragraph.text[:50]}{'...' if len(paragraph.text) > 50 else ''}")
+            
+            if len(doc.paragraphs) > 10:
+                info_lines.append(f"  ... 还有 {len(doc.paragraphs) - 10} 个段落")
+            
+            # 显示表格信息
+            if doc.tables:
+                info_lines.append(f"\n表格信息:")
+                for i, table in enumerate(doc.tables):
+                    info_lines.append(f"  表格 {i+1}: {len(table.rows)} 行 x {len(table.columns)} 列")
+            
+            # 更新文档信息显示
+            self.doc_info_text.config(state=tk.NORMAL)
+            self.doc_info_text.delete(1.0, tk.END)
+            self.doc_info_text.insert(1.0, '\n'.join(info_lines))
+            self.doc_info_text.config(state=tk.DISABLED)
+            
+            # 保存文档对象引用
+            self.current_doc_object = doc
+        except Exception as e:
+            error_info = f"无法读取文档信息: {str(e)}"
+            self.doc_info_text.config(state=tk.NORMAL)
+            self.doc_info_text.delete(1.0, tk.END)
+            self.doc_info_text.insert(1.0, error_info)
+            self.doc_info_text.config(state=tk.DISABLED)
+
+    def edit_in_word(self):
+        """
+        在Word或WPS中编辑当前文档
+        """
+        if not hasattr(self, 'current_template_file') or not self.current_template_file:
+            print("请先选择一个Word文档")
+            return
+        
+        try:
+            import win32com.client
+            import os
+            
+            # 获取文件的绝对路径
+            abs_path = os.path.abspath(self.current_template_file)
+            
+            # 尝试连接到正在运行的Word应用程序
+            try:
+                self.word_app = win32com.client.GetActiveObject("Word.Application")
+                self.app_type = "Word"
+                print("已连接到正在运行的Word应用程序")
+            except:
+                # 如果没有运行的Word，尝试连接到WPS
+                try:
+                    self.word_app = win32com.client.GetActiveObject("KWPS.Application")
+                    self.app_type = "WPS"
+                    print("已连接到正在运行的WPS应用程序")
+                except:
+                    # 如果没有运行的WPS，尝试启动新的Word实例
+                    try:
+                        self.word_app = win32com.client.Dispatch("Word.Application")
+                        self.app_type = "Word"
+                        print("已启动新的Word应用程序")
+                    except:
+                        # 如果无法启动Word，尝试启动WPS
+                        try:
+                            self.word_app = win32com.client.Dispatch("KWPS.Application")
+                            self.app_type = "WPS"
+                            print("已启动新的WPS应用程序")
+                        except:
+                            print("无法连接到Word或WPS应用程序")
+                            print("请确保已安装Microsoft Word或WPS Office")
+                            return
+            
+            self.word_app.Visible = True  # 显示应用程序
+            
+            # 打开文档
+            if self.app_type == "Word":
+                self.word_doc = self.word_app.Documents.Open(abs_path)
+            else:  # WPS
+                self.word_doc = self.word_app.Documents.Open(abs_path)
+            
+            print(f"已在{self.app_type}中打开文档: {self.current_template_file}")
+            print(f"请在{self.app_type}中进行编辑")
+            
+        except Exception as e:
+            print(f"在Word/WPS中编辑文档时出错: {str(e)}")
+            print("请确保：")
+            print("1. 已安装Microsoft Word或WPS Office")
+            print("2. 已安装pywin32库 (pip install pywin32)")
+            print("3. 以足够权限运行程序")
+
+    def insert_placeholder_to_word(self):
+        """
+        将选中的占位符插入到Word/WPS文档的光标位置
+        """
+        # 检查是否选择了占位符
+        selection = self.placeholder_listbox.curselection()
+        if not selection:
+            print("请先从左侧列表中选择一个占位符")
+            return
+        
+        placeholder = self.placeholder_listbox.get(selection[0])
+        
+        # 检查是否已打开Word/WPS文档
+        if not self.word_doc:
+            print("请先点击'在Word中编辑'按钮打开Word或WPS文档")
+            return
+        
+        try:
+            import win32com.client
+            
+            # 在文档的光标位置插入占位符
+            selection = self.word_app.Selection
+            selection.TypeText(f"{{{placeholder}}}")
+            
+            print(f"已将占位符 {{{placeholder}}} 插入到文档")
+        except Exception as e:
+            print(f"插入占位符时出错: {str(e)}")
+            print("请确保文档已正确打开")
+
+    def save_word_template_file(self):
+        """
+        保存Word模板文件
+        """
+        if not hasattr(self, 'current_template_file') or not self.current_template_file:
+            print("请先选择一个Word文档")
+            return
+        
+        try:
+            # 如果Word文档已打开，先保存
+            if self.word_doc:
+                self.word_doc.Save()
+                print(f"已保存Word文档: {self.current_template_file}")
+            else:
+                print("文档已保存")
+                
+        except Exception as e:
+            print(f"保存Word文档时出错: {str(e)}")
+
     def refresh_placeholders_list(self):
         """
         刷新占位符列表
@@ -1540,6 +1759,43 @@ Tips:打开文档后请不点击“刷新占位符”按钮
         # 在另一个线程中执行占位符刷新操作
         import threading
         threading.Thread(target=self._refresh_placeholders_thread, daemon=True).start()
+
+    def edit_in_word(self):
+        """
+        在Word中编辑当前文档
+        """
+        if not hasattr(self, 'current_template_file') or not self.current_template_file:
+            print("请先选择一个Word文档")
+            return
+        
+        if not self.current_template_file.endswith('.docx'):
+            print("只能在Word中编辑.docx文件")
+            return
+        
+        try:
+            import win32com.client
+            import os
+            
+            # 获取文件的绝对路径
+            abs_path = os.path.abspath(self.current_template_file)
+            
+            # 启动Word应用程序
+            word = win32com.client.Dispatch("Word.Application")
+            word.Visible = True  # 显示Word应用程序
+            
+            # 打开文档
+            doc = word.Documents.Open(abs_path)
+            
+            print(f"已在Word中打开文档: {self.current_template_file}")
+            print("请在Word中进行编辑，关闭文档时会自动保存更改")
+            
+        except Exception as e:
+            print(f"在Word中编辑文档时出错: {str(e)}")
+            print("请确保：")
+            print("1. 已安装Microsoft Word")
+            print("2. 已安装pywin32库 (pip install pywin32)")
+            print("3. 以足够权限运行程序")
+    
     
     def _refresh_placeholders_thread(self):
         """
@@ -1656,21 +1912,23 @@ Tips:打开文档后请不点击“刷新占位符”按钮
         old_placeholder = self.placeholder_listbox.get(index)
         
         # 检查是否为提示信息
-        if old_placeholder in ['''请先点击"选择文档目录"按钮选择文件夹''',"在选定的文件夹中未找到占位符","日期"]:
-            self.log_and_status("无法编辑该内容")
+        if old_placeholder in ['''请先点击"选择文档目录"按钮选择文件夹''', 
+                              "在选定的文件夹中未找到占位符",
+                              "日期"]:
+            self.log_and_status("无法编辑此内容")
             return
         
         # 创建编辑对话框
         dialog = tk.Toplevel(self.root)
         
-        # 居中显示对话框并置顶、读取键鼠输入
-        self.center_dialog(dialog, 280, 100)
+        # 设置对话框大小并居中
+        dialog.geometry("250x100")
+        dialog.resizable(False, False)
+        
+        # 居中显示对话框
+        self.center_dialog(dialog, 250, 100)
         dialog.transient(self.root)
         dialog.grab_set()
-        
-        # 设置对话框大小
-        dialog.geometry("230x100")
-        dialog.resizable(False, False)
 
         # 设置标题
         dialog.title("编辑占位符")
@@ -1680,7 +1938,7 @@ Tips:打开文档后请不点击“刷新占位符”按钮
         
         # 编辑框架，设置整体居中
         edit_frame = ttk.Frame(dialog)
-        edit_frame.grid(row=0, column=0, pady=10, padx=10, sticky=(tk.W, tk.E))
+        edit_frame.grid(row=0, column=0, pady=5, padx=5, sticky=(tk.W, tk.E))
         
         # 配置编辑框架的列权重
         edit_frame.columnconfigure(0, weight=1)
@@ -1729,7 +1987,7 @@ Tips:打开文档后请不点击“刷新占位符”按钮
         
         # 按钮框架，设置整体居中
         button_frame = ttk.Frame(dialog)
-        button_frame.grid(row=1, column=0, pady=(0,10), padx=10, sticky=(tk.W, tk.E))
+        button_frame.grid(row=1, column=0, pady=5, padx=5, sticky=(tk.W, tk.E))
         
         # 配置按钮框架的列权重，使按钮能够居中
         button_frame.columnconfigure(0, weight=1)
@@ -1836,14 +2094,14 @@ Tips:打开文档后请不点击“刷新占位符”按钮
         """
         # 创建添加占位符对话框
         dialog = tk.Toplevel(self.root)
-        dialog.title("添加新占位符")
-
+        
         # 设置对话框大小并居中
-        dialog.geometry("230x100")
+        dialog.geometry("250x100")
         dialog.resizable(False, False)
+        dialog.title("添加新占位符")
         
         # 居中显示对话框
-        self.center_dialog(dialog, 230, 100)
+        self.center_dialog(dialog, 250, 100)
         dialog.transient(self.root)
         dialog.grab_set()
         
@@ -1852,18 +2110,18 @@ Tips:打开文档后请不点击“刷新占位符”按钮
         
         # 创建录入框架，包含标签和输入框，整体居中
         input_frame = ttk.Frame(dialog)
-        input_frame.grid(row=0, column=0, pady=10, padx=10, sticky=(tk.W, tk.E))
+        input_frame.grid(row=0, column=0, pady=5, padx=5, sticky=(tk.W, tk.E))
         
         # 配置录入框架的列权重
         input_frame.columnconfigure(0, weight=1)
         input_frame.columnconfigure(1, weight=2)
         
         # 添加标签和输入框
-        ttk.Label(input_frame, text="占位符名称:").grid(row=0, column=0, pady=(10, 5), sticky=tk.W)
+        ttk.Label(input_frame, text="占位符名称:").grid(row=0, column=0, pady=5, sticky=tk.W)
         
         placeholder_var = tk.StringVar()
         entry = ttk.Entry(input_frame, textvariable=placeholder_var)
-        entry.grid(row=0, column=1, pady=5, padx=(5, 0), sticky=(tk.W, tk.E))
+        entry.grid(row=0, column=1, pady=5, padx=5, sticky=(tk.W, tk.E))
         entry.focus()
         
         # 确定按钮事件处理
@@ -1895,14 +2153,14 @@ Tips:打开文档后请不点击“刷新占位符”按钮
         
         # 按钮框架
         button_frame = ttk.Frame(dialog)
-        button_frame.grid(row=1, column=0, pady=(0,10), padx=10, sticky=(tk.W,tk.E))
+        button_frame.grid(row=1, column=0, pady=5, padx=5, sticky=(tk.W, tk.E))
 
         # 配置按钮框架的列权重，使按钮能够居中
         button_frame.columnconfigure(0, weight=1)
         button_frame.columnconfigure(1, weight=0)
         button_frame.columnconfigure(2, weight=0)
         button_frame.columnconfigure(3, weight=1)
-
+        
         # 确定和取消按钮
         ok_button = ttk.Button(button_frame, text="确定", command=on_ok)
         ok_button.grid(row=0, column=1, padx=(0, 5))
@@ -1985,6 +2243,64 @@ Tips:打开文档后请不点击“刷新占位符”按钮
         else:
             print(f"已在以下文件中删除占位符: {', '.join(updated_files)}")
 
+    def remove_placeholder_from_docx(self, file_path, placeholder):
+        """
+        从Word文档中删除占位符
+        :param file_path: Word文档路径
+        :param placeholder: 要删除的占位符名称
+        """
+        from docx import Document
+        
+        # 打开文档
+        doc = Document(file_path)
+        
+        # 替换段落中的占位符为空字符串
+        for paragraph in doc.paragraphs:
+            if f"{{{placeholder}}}" in paragraph.text:
+                paragraph.text = paragraph.text.replace(f"{{{placeholder}}}", "")
+        
+        # 替换表格中的占位符为空字符串
+        for table in doc.tables:
+            for row in table.rows:
+                for cell in row.cells:
+                    if f"{{{placeholder}}}" in cell.text:
+                        cell.text = cell.text.replace(f"{{{placeholder}}}", "")
+        
+        # 保存文档
+        doc.save(file_path)
+
+    def remove_placeholder_from_xlsx(self, file_path, placeholder):
+        """
+        从Excel文件中删除占位符
+        :param file_path: Excel文件路径
+        :param placeholder: 要删除的占位符名称
+        """
+        from openpyxl import load_workbook
+        
+        # 打开工作簿
+        workbook = load_workbook(file_path)
+        
+        # 遍历所有工作表
+        for sheet_name in workbook.sheetnames:
+            sheet = workbook[sheet_name]
+            
+            # 遍历所有单元格
+            for row in sheet.iter_rows():
+                for cell in row:
+                    if cell.value and isinstance(cell.value, str) and f"{{{placeholder}}}" in cell.value:
+                        cell.value = cell.value.replace(f"{{{placeholder}}}", "")
+        
+        # 保存工作簿
+        workbook.save(file_path)
+
+    def add_placeholder_to_templates(self, placeholder):
+        """
+        在模板中添加占位符（这是一个空实现，因为占位符是在文档中手动添加的）
+        :param placeholder: 要添加的占位符
+        """
+        # 实际上，占位符是在文档中手动添加的，这里不需要做任何事情
+        pass
+
     def copy_placeholder_to_clipboard(self):
         """
         将选中的占位符复制到剪贴板
@@ -2007,7 +2323,7 @@ Tips:打开文档后请不点击“刷新占位符”按钮
     
     def add_placeholder_button_frame(self):
         """
-        添加"添加占位符"按钮
+        添加添加占位符按钮
         """
         add_placeholder_button_frame = ttk.Frame(self.root)
         add_placeholder_button_frame.pack(side=tk.TOP, fill=tk.X, padx=10, pady=10)
@@ -2034,6 +2350,19 @@ Tips:打开文档后请不点击“刷新占位符”按钮
         except Exception as e:
             self.update_status(f"复制失败: {e}")
     
+    def insert_placeholder_at_cursor(self):
+        """
+        将选中的占位符添加到剪贴板（原为在光标位置插入占位符）
+        """
+        selection = self.placeholder_listbox.curselection()
+        if not selection:
+            print("请先选择一个占位符")
+            return
+        
+        placeholder = self.placeholder_listbox.get(selection[0])
+        # 复制占位符到剪贴板
+        self.copy_placeholder_to_clipboard()
+    
     def select_template_file(self):
         """
         选择模板文件
@@ -2049,6 +2378,132 @@ Tips:打开文档后请不点击“刷新占位符”按钮
         
         if file_path:
             self.load_template_file(file_path)
+
+    def load_template_file(self, file_path):
+        """
+        加载模板文件内容
+        :param file_path: 文件路径
+        """
+        try:
+            # 根据文件类型处理
+            if file_path.endswith('.docx'):
+                self.load_docx_content(file_path)
+            elif file_path.endswith('.xlsx'):
+                self.load_xlsx_content(file_path)
+            else:
+                # 默认按文本文件处理，显示基本信息
+                info_lines = []
+                info_lines.append(f"文件名: {os.path.basename(file_path)}")
+                info_lines.append(f"文件路径: {file_path}")
+                info_lines.append("注意: 这是非Word/Excel文档格式")
+                info_lines.append("仅支持占位符复制功能")
+                
+                # 更新文档信息显示
+                self.doc_info_text.config(state=tk.NORMAL)
+                self.doc_info_text.delete(1.0, tk.END)
+                self.doc_info_text.insert(1.0, '\n'.join(info_lines))
+                self.doc_info_text.config(state=tk.DISABLED)
+                
+                self.current_file_label.config(text=f"当前文件: {os.path.basename(file_path)}")
+                self.current_template_file = file_path
+                print(f"已加载文件: {file_path}")
+                print("这是非Word文档格式，仅支持占位符复制功能")
+            
+            self.current_file_label.config(text=f"当前文件: {os.path.basename(file_path)}")
+            self.current_template_file = file_path
+            
+            # 自动打开文档（无论什么格式）
+            self.auto_open_document(file_path)
+        except Exception as e:
+            error_info = f"无法读取文档信息: {str(e)}"
+            self.doc_info_text.config(state=tk.NORMAL)
+            self.doc_info_text.delete(1.0, tk.END)
+            self.doc_info_text.insert(1.0, error_info)
+            self.doc_info_text.config(state=tk.DISABLED)
+            print(error_info)
+
+    def auto_open_document(self, file_path):
+        """
+        自动打开文档
+        :param file_path: 文件路径
+        """
+        try:
+            os.startfile(file_path)
+        except Exception as e:
+            error_info = f"无法打开文档: {str(e)}"
+            self.doc_info_text.config(state=tk.NORMAL)
+            self.doc_info_text.delete(1.0, tk.END)
+            self.doc_info_text.insert(1.0, error_info)
+            self.doc_info_text.config(state=tk.DISABLED)
+            print(error_info)
+    
+    def load_docx_content(self, file_path):
+        """
+        加载Word文档内容
+        :param file_path: 文件路径
+        """
+        try:
+            doc = Document(file_path)
+            self.doc_info_text.config(state=tk.NORMAL)
+            self.doc_info_text.delete(1.0, tk.END)
+            self.doc_info_text.insert(1.0, "```\n" + doc.paragraphs[0].text + "\n```")
+            self.doc_info_text.config(state=tk.DISABLED)
+            
+            self.current_file_label.config(text=f"当前文件: {os.path.basename(file_path)}")
+            self.current_template_file = file_path
+            print(f"已加载文件: {file_path}")
+            
+            # 自动打开文档
+            self.auto_open_document(file_path)
+        except Exception as e:
+            error_info = f"无法读取Word文档: {str(e)}"
+            self.doc_info_text.config(state=tk.NORMAL)
+            self.doc_info_text.delete(1.0, tk.END)
+            self.doc_info_text.insert(1.0, error_info)
+            self.doc_info_text.config(state=tk.DISABLED)
+            print(error_info)
+    
+    def load_xlsx_content(self, file_path):
+        """
+        加载Excel文件内容
+        :param file_path: 文件路径
+        """
+        try:
+            workbook = load_workbook(file_path)
+            sheet = workbook.active
+            self.doc_info_text.config(state=tk.NORMAL)
+            self.doc_info_text.delete(1.0, tk.END)
+            self.doc_info_text.insert(1.0, "```\n" + sheet['A1'].value + "\n```")
+            self.doc_info_text.config(state=tk.DISABLED)
+            
+            self.current_file_label.config(text=f"当前文件: {os.path.basename(file_path)}")
+            self.current_template_file = file_path
+            print(f"已加载文件: {file_path}")
+            
+            # 自动打开文档
+            self.auto_open_document(file_path)
+        except Exception as e:
+            error_info = f"无法读取Excel文件: {str(e)}"
+            self.doc_info_text.config(state=tk.NORMAL)
+            self.doc_info_text.delete(1.0, tk.END)
+            self.doc_info_text.insert(1.0, error_info)
+            self.doc_info_text.config(state=tk.DISABLED)
+            print(error_info)
+    
+    def auto_open_document(self, file_path):
+        """
+        自动打开文档
+        :param file_path: 文件路径
+        """
+        try:
+            os.startfile(file_path)
+        except Exception as e:
+            error_info = f"无法自动打开文档: {str(e)}"
+            self.doc_info_text.config(state=tk.NORMAL)
+            self.doc_info_text.delete(1.0, tk.END)
+            self.doc_info_text.insert(1.0, error_info)
+            self.doc_info_text.config(state=tk.DISABLED)
+            print(error_info)
     
     def add_placeholder_button_frame(self):
         """
@@ -2112,6 +2567,269 @@ Tips:打开文档后请不点击“刷新占位符”按钮
         self.doc_info_text.delete(1.0, tk.END)
         self.doc_info_text.insert(1.0, "\n".join(info_lines))
         self.doc_info_text.config(state=tk.DISABLED)
+
+    def auto_open_document(self, file_path):
+        """
+        自动打开文档
+        :param file_path: 文件路径
+        """
+        try:
+            import win32com.client
+            import os
+            
+            # 获取文件的绝对路径
+            abs_path = os.path.abspath(file_path)
+            
+            # 根据文件扩展名确定应用程序
+            if file_path.endswith('.docx'):
+                # 尝试连接到正在运行的Word实例
+                try:
+                    word = win32com.client.GetActiveObject("Word.Application")
+                except:
+                    # 如果没有运行的Word实例，则启动新的实例
+                    word = win32com.client.Dispatch("Word.Application")
+                
+                word.Visible = True
+                doc = word.Documents.Open(abs_path)
+                print(f"已在Word中打开文档: {file_path}")
+                
+            elif file_path.endswith('.xlsx'):
+                # 尝试连接到正在运行的Excel实例
+                try:
+                    excel = win32com.client.GetActiveObject("Excel.Application")
+                except:
+                    # 如果没有运行的Excel实例，则启动新的实例
+                    excel = win32com.client.Dispatch("Excel.Application")
+                
+                excel.Visible = True
+                workbook = excel.Workbooks.Open(abs_path)
+                print(f"已在Excel中打开文档: {file_path}")
+                
+            else:
+                # 对于其他格式的文件，使用系统默认程序打开
+                try:
+                    import subprocess
+                    if os.name == 'nt':  # Windows系统
+                        os.startfile(abs_path)
+                    elif os.name == 'posix':  # macOS或Linux系统
+                        subprocess.call(['open', abs_path])  # macOS
+                except:
+                    try:
+                        subprocess.call(['xdg-open', abs_path])  # Linux
+                    except:
+                        print(f"无法自动打开文件: {file_path}")
+                        print("请手动打开该文件进行编辑")
+                
+                print(f"已尝试使用默认程序打开文档: {file_path}")
+                
+        except Exception as e:
+            # 如果自动打开失败，只打印错误信息，不中断程序流程
+            print(f"自动打开文档时出错: {str(e)}")
+            print("请手动打开文档进行编辑")
+
+    def load_docx_content(self, file_path):
+        """
+        加载Word文档内容（仅显示信息，不显示内容）
+        :param file_path: Word文档路径
+        """
+        try:
+            # 显示文档信息
+            self.display_word_doc_info(file_path)
+        except Exception as e:
+            print(f"加载Word文档时出错: {str(e)}")
+    
+    def load_xlsx_content(self, file_path):
+        """
+        加载Excel文件内容（仅显示信息，不显示内容）
+        :param file_path: Excel文件路径
+        """
+        try:
+            if not EXCEL_PROCESSING_AVAILABLE:
+                raise Exception("Excel处理功能不可用，请安装openpyxl库")
+            
+            workbook = load_workbook(file_path)
+            
+            # 收集文档信息
+            info_lines = []
+            info_lines.append(f"文件名: {os.path.basename(file_path)}")
+            info_lines.append(f"文件路径: {file_path}")
+            info_lines.append(f"工作表数量: {len(workbook.sheetnames)}")
+            
+            # 显示工作表信息
+            info_lines.append("\n工作表列表:")
+            for i, sheet_name in enumerate(workbook.sheetnames):
+                worksheet = workbook[sheet_name]
+                info_lines.append(f"  {i+1}. {sheet_name} ({worksheet.max_row} 行 x {worksheet.max_column} 列)")
+            
+            # 更新文档信息显示
+            self.doc_info_text.config(state=tk.NORMAL)
+            self.doc_info_text.delete(1.0, tk.END)
+            self.doc_info_text.insert(1.0, '\n'.join(info_lines))
+            self.doc_info_text.config(state=tk.DISABLED)
+            
+            print(f"已加载Excel文件: {file_path}")
+        except Exception as e:
+            error_info = f"无法读取文档信息: {str(e)}"
+            self.doc_info_text.config(state=tk.NORMAL)
+            self.doc_info_text.delete(1.0, tk.END)
+            self.doc_info_text.insert(1.0, error_info)
+            self.doc_info_text.config(state=tk.DISABLED)
+            print(f"加载Excel文件时出错: {str(e)}")
+
+    def display_doc_info(self, file_path):
+        """
+        显示文档信息
+        :param file_path: 文档路径
+        """
+        try:
+            if file_path.endswith('.docx'):
+                self.display_word_doc_info(file_path)
+            elif file_path.endswith('.xlsx'):
+                self.display_xlsx_doc_info(file_path)
+            else:
+                print("无法识别的文件类型")
+        except Exception as e:
+            error_info = f"无法读取文档信息: {str(e)}"
+            self.doc_info_text.config(state=tk.NORMAL)
+            self.doc_info_text.delete(1.0, tk.END)
+            self.doc_info_text.insert(1.0, error_info)
+            self.doc_info_text.config(state=tk.DISABLED)
+
+    def display_xlsx_doc_info(self, file_path):
+        """
+        显示Excel文档信息
+        :param file_path: Excel文档路径
+        """
+        try:
+            workbook = load_workbook(file_path)
+            
+            # 收集文档信息
+            info_lines = []
+            info_lines.append(f"文件名: {os.path.basename(file_path)}")
+            info_lines.append(f"文件路径: {file_path}")
+            info_lines.append(f"工作表数量: {len(workbook.sheetnames)}")
+            
+            # 显示前几个工作表的内容预览
+            info_lines.append("\n内容预览:")
+            for sheet_name in workbook.sheetnames[:10]:  # 只显示前10个工作表
+                sheet = workbook[sheet_name]
+                info_lines.append(f"  工作表: {sheet_name}")
+                for row in sheet.iter_rows(max_row=10):  # 只显示前10行
+                    row_content = []
+                    for cell in row:
+                        if cell.value is not None:
+                            row_content.append(str(cell.value))
+                        else:
+                            row_content.append("")
+                    info_lines.append(f"    {','.join(row_content)}")
+            
+            if len(workbook.sheetnames) > 10:
+                info_lines.append(f"  ... 还有 {len(workbook.sheetnames) - 10} 个工作表")
+            
+            # 更新文档信息显示
+            self.doc_info_text.config(state=tk.NORMAL)
+            self.doc_info_text.delete(1.0, tk.END)
+            self.doc_info_text.insert(1.0, '\n'.join(info_lines))
+            self.doc_info_text.config(state=tk.DISABLED)
+            
+            print(f"已加载Excel文件: {file_path}")
+        except Exception as e:
+            print(f"加载Excel文件时出错: {str(e)}")
+            self.content_text.delete(1.0, tk.END)
+            self.content_text.insert(1.0, f"无法加载Excel文件内容: {str(e)}")
+    
+    def save_template_file(self):
+        """
+        保存模板文件（简化版，仅提示用户已在外部编辑器中保存）
+        """
+        if not hasattr(self, 'current_template_file') or not self.current_template_file:
+            print("请先选择一个文件")
+            return
+        
+        print(f"请在您使用的文档编辑软件中保存文件: {self.current_template_file}")
+        print("该工具不直接保存文件内容，仅提供占位符复制功能")
+
+    
+    def save_as_docx(self, file_path, content):
+        """
+        保存为Word文档（保持原始格式，只更新文本内容）
+        :param file_path: 文件路径
+        :param content: 文档内容
+        """
+        try:
+            # 如果有原始文档对象引用，则基于原始文档更新文本内容
+            if hasattr(self, 'current_doc_object') and self.current_doc_object:
+                doc = self.current_doc_object
+                
+                # 按行分割内容
+                lines = content.split('\n')
+                
+                # 更新段落索引
+                paragraph_index = 0
+                
+                # 遍历文档中的段落
+                for i, paragraph in enumerate(doc.paragraphs):
+                    # 如果还有可用内容
+                    if paragraph_index < len(lines):
+                        line = lines[paragraph_index]
+                        
+                        # 跳过表格标记行
+                        if line.startswith("--- 表格"):
+                            paragraph_index += 1
+                            continue
+                        
+                        # 更新段落文本
+                        self.replace_text_in_paragraph(paragraph, 
+                                                     {'{.*}': line})  # 这里简化处理，实际应该更精确
+                        
+                        paragraph_index += 1
+                
+                # 保存文档
+                doc.save(file_path)
+            else:
+                # 没有原始文档对象，创建新文档
+                doc = Document()
+                
+                # 按行分割内容并添加到文档中
+                lines = content.split('\n')
+                for line in lines:
+                    # 跳过表格标记行
+                    if line.startswith("--- 表格"):
+                        continue
+                    doc.add_paragraph(line)
+                
+                doc.save(file_path)
+                
+                # 保存新创建的文档对象引用
+                self.current_doc_object = doc
+        except Exception as e:
+            raise Exception(f"保存Word文档时出错: {str(e)}")
+    
+    def save_as_xlsx(self, file_path, content):
+        """
+        保存为Excel文件（简单实现）
+        :param file_path: 文件路径
+        :param content: 文件内容
+        """
+        try:
+            if not EXCEL_PROCESSING_AVAILABLE:
+                raise Exception("Excel处理功能不可用，请安装openpyxl库")
+            
+            workbook = Workbook()
+            sheet = workbook.active
+            sheet.title = "模板"
+            
+            # 按行分割内容并添加到工作表中
+            lines = content.split('\n')
+            for row_idx, line in enumerate(lines, 1):
+                # 简单按逗号分割列
+                columns = line.split(',') if line else [""]
+                for col_idx, value in enumerate(columns, 1):
+                    sheet.cell(row=row_idx, column=col_idx, value=value)
+            
+            workbook.save(file_path)
+        except Exception as e:
+            raise Exception(f"保存Excel文件时出错: {str(e)}")
     
     def setup_main_tab(self):
         """
@@ -2145,18 +2863,9 @@ Tips:打开文档后请不点击“刷新占位符”按钮
         
         ttk.Button(left_frame, text="刷新方案列表", command=self.load_saved_schemes).grid(row=1, column=0, columnspan=2)
         
-        # 右侧：用户录入区域分为上下两个部分
-        # 上方框架：用户输入框
-        input_top_frame = ttk.Frame(right_frame)
-        input_top_frame.pack(fill=tk.BOTH, expand=True)
-        
-        # 下方框架：保存按钮
-        input_bottom_frame = ttk.Frame(right_frame)
-        input_bottom_frame.pack(fill=tk.X, pady=(5, 0))
-        
-        # 上方框架内容：用户录入区域
-        self.input_canvas = tk.Canvas(input_top_frame, height=200)
-        self.input_scrollbar = ttk.Scrollbar(input_top_frame, orient="vertical", command=self.input_canvas.yview)
+        # 右侧：用户录入区域
+        self.input_canvas = tk.Canvas(right_frame, height=200)
+        self.input_scrollbar = ttk.Scrollbar(right_frame, orient="vertical", command=self.input_canvas.yview)
         self.input_scrollable_frame = ttk.Frame(self.input_canvas)
         
         # 添加鼠标滚轮支持
@@ -2176,15 +2885,11 @@ Tips:打开文档后请不点击“刷新占位符”按钮
         self.input_canvas.create_window((0, 0), window=self.input_scrollable_frame, anchor="nw")
         self.input_canvas.configure(yscrollcommand=self.input_scrollbar.set)
         
-        self.input_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        self.input_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        self.input_canvas.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        self.input_scrollbar.grid(row=0, column=1, sticky=(tk.N, tk.S))
         
-        # 下方框架内容：保存按钮
-        input_bottom_frame.columnconfigure(0, weight=1)  # 配置列权重以实现居中
-        button_frame_inner = ttk.Frame(input_bottom_frame)
-        button_frame_inner.grid(row=0, column=0)
-        ttk.Button(button_frame_inner, text="暂存录入内容", command=self.save_user_inputs_only).pack()
-
+        right_frame.columnconfigure(0, weight=1)
+        right_frame.rowconfigure(0, weight=1)
         
         # 控制按钮区域
         button_frame = ttk.Frame(main_frame)
@@ -2208,38 +2913,6 @@ Tips:打开文档后请不点击“刷新占位符”按钮
         
         # 加载已保存的方案
         self.load_saved_schemes()
-
-    def save_user_inputs_only(self):
-        """
-        仅保存用户输入内容，不生成文档
-        """
-        if not self.current_scheme:
-            self.log_and_status("警告: 请先选择一个方案")
-            return
-        
-        # 收集用户输入
-        user_inputs = {}
-        for placeholder, widget in self.input_fields.items():
-            if placeholder == '日期':
-                user_inputs[placeholder] = widget  # 日期字段是字符串
-                continue
-                    
-            if isinstance(widget, ttk.Entry):
-                user_inputs[placeholder] = widget.get()
-            elif isinstance(widget, ttk.Combobox):
-                user_inputs[placeholder] = widget.get()
-        
-        # 确保日期字段存在
-        if '日期' not in user_inputs:
-            today = datetime.now().strftime('%Y年%m月%d日')
-            user_inputs['日期'] = today
-        
-        # 保存当前用户输入
-        if self.current_scheme:
-            self.save_user_inputs_for_scheme(self.current_scheme, user_inputs)
-            self.log_and_status(f"成功: 方案 '{self.current_scheme}' 的录入内容已暂存")
-        else:
-            self.log_and_status("警告: 未选择任何方案，无法保存录入内容")
 
     def select_output_dir(self):
         """
@@ -2347,7 +3020,7 @@ Tips:打开文档后请不点击“刷新占位符”按钮
     
     def setup_config_tab(self):
         """
-        设置配置方案标签页（2栏式布局）
+        设置配置方案标签页（改为2栏式布局）
         """
         config_frame = ttk.Frame(self.config_frame, padding="10")
         config_frame.pack(fill=tk.BOTH, expand=True)
@@ -3310,6 +3983,58 @@ Tips:打开文档后请不点击“刷新占位符”按钮
             self.update_status("4. 确保输出目录有写入权限")
             self.update_status("5. 尝试安装LibreOffice作为备选的文档转换工具")
             self.update_status("6. 重启计算机以释放可能被占用的Office进程")
+
+
+    def setup_help_tab(self):
+        """
+        设置使用说明标签页
+        """
+        help_frame = ttk.Frame(self.help_frame, padding="10")
+        help_frame.pack(fill=tk.BOTH, expand=True)
+        
+        # 创建文本框和滚动条
+        help_text_frame = ttk.Frame(help_frame)
+        help_text_frame.pack(fill=tk.BOTH, expand=True)
+        
+        help_text = tk.Text(help_text_frame, wrap=tk.WORD)
+        scrollbar = ttk.Scrollbar(help_text_frame, orient="vertical", command=help_text.yview)
+        help_text.configure(yscrollcommand=scrollbar.set)
+        
+        # 配置文本标签样式
+        help_text.tag_configure("title", font=("微软雅黑", 14, "bold"), foreground="darkblue")
+        help_text.tag_configure("section", font=("微软雅黑", 11, "bold"), foreground="darkgreen")
+        help_text.tag_configure("subsection", font=("微软雅黑", 10, "bold"), foreground="darkred")
+        help_text.tag_configure("content", font=("微软雅黑", 10))
+        help_text.tag_configure("note", font=("微软雅黑", 10), foreground="purple")
+        
+        # 硬编码使用说明内容
+        # 标题
+        help_text.insert(tk.END, "填单助手使用说明\n\n", "title")
+        
+        # 基本功能
+        help_text.insert(tk.END, "一、基本功能\n", "section")
+        help_text.insert(tk.END, "用于按预设模板批量生成Word和Excel文档，减少重复填单工作量。\n\n", "content")
+        
+        # 使用流程
+        help_text.insert(tk.END, "二、使用流程\n", "section")
+        help_text.insert(tk.END, "配置文档模板：查看占位符，复制指定占位符到打开的到Word/Excel文件中，保存为文档模板。\n", "content")
+        help_text.insert(tk.END, "配置文档组合：将多个文档模板保存为一个组合，便于后续数据录入。\n", "content")
+        help_text.insert(tk.END, "数据录入：选择方案，填写内容，按照文档组合批量形成文档。\n\n", "content")
+                
+        # 占位符格式
+        help_text.insert(tk.END, "三、占位符格式\n", "section")
+        help_text.insert(tk.END, "格式为{占位符名称}，如{姓名}，不可包含特殊字符\n\n", "content")
+        
+        # 注意事项
+        help_text.insert(tk.END, "四、注意事项\n", "section")
+        help_text.insert(tk.END, "1.生成文档保存在指定目录，命名为\"原文件名_已填充.扩展名\"\n", "content")
+        help_text.insert(tk.END, "2.请使用docx、xlsx文件进行操作\n\n", "content")
+        
+        help_text.config(state=tk.DISABLED)  # 设置为只读
+        
+        help_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
 
 def main():
     """
