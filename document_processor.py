@@ -877,15 +877,6 @@ class DocumentProcessorUI:
         self.setup_main_tab()
         self.setup_config_tab()
         self.setup_template_maker_tab()
-        # self.setup_help_tab()
-        
-        # 创建状态栏
-        # self.status_bar = ttk.Label(self.root, text="就绪", relief=tk.SUNKEN, anchor=tk.W)
-        # self.status_bar.pack(side=tk.BOTTOM, fill=tk.X)
-
-        # 创建状态栏
-        # self.status_bar = ttk.Label(self.root, text="就绪", relief=tk.SUNKEN, anchor=tk.W)
-        # self.status_bar.pack(side=tk.BOTTOM, fill=tk.X)
 
     def setup_template_maker_tab(self):
         """
@@ -2400,161 +2391,6 @@ class DocumentProcessorUI:
             self.doc_info_text.insert(1.0, error_info)
             self.doc_info_text.config(state=tk.DISABLED)
             print(f"加载Excel文件时出错: {str(e)}")
-
-    def display_doc_info(self, file_path):
-        """
-        显示文档信息
-        :param file_path: 文档路径
-        """
-        try:
-            if file_path.endswith('.docx'):
-                self.display_word_doc_info(file_path)
-            elif file_path.endswith('.xlsx'):
-                self.display_xlsx_doc_info(file_path)
-            else:
-                print("无法识别的文件类型")
-        except Exception as e:
-            error_info = f"无法读取文档信息: {str(e)}"
-            self.doc_info_text.config(state=tk.NORMAL)
-            self.doc_info_text.delete(1.0, tk.END)
-            self.doc_info_text.insert(1.0, error_info)
-            self.doc_info_text.config(state=tk.DISABLED)
-
-    def display_xlsx_doc_info(self, file_path):
-        """
-        显示Excel文档信息
-        :param file_path: Excel文档路径
-        """
-        try:
-            workbook = load_workbook(file_path)
-            
-            # 收集文档信息
-            info_lines = []
-            info_lines.append(f"文件名: {os.path.basename(file_path)}")
-            info_lines.append(f"文件路径: {file_path}")
-            info_lines.append(f"工作表数量: {len(workbook.sheetnames)}")
-            
-            # 显示前几个工作表的内容预览
-            info_lines.append("\n内容预览:")
-            for sheet_name in workbook.sheetnames[:10]:  # 只显示前10个工作表
-                sheet = workbook[sheet_name]
-                info_lines.append(f"  工作表: {sheet_name}")
-                for row in sheet.iter_rows(max_row=10):  # 只显示前10行
-                    row_content = []
-                    for cell in row:
-                        if cell.value is not None:
-                            row_content.append(str(cell.value))
-                        else:
-                            row_content.append("")
-                    info_lines.append(f"    {','.join(row_content)}")
-            
-            if len(workbook.sheetnames) > 10:
-                info_lines.append(f"  ... 还有 {len(workbook.sheetnames) - 10} 个工作表")
-            
-            # 更新文档信息显示
-            self.doc_info_text.config(state=tk.NORMAL)
-            self.doc_info_text.delete(1.0, tk.END)
-            self.doc_info_text.insert(1.0, '\n'.join(info_lines))
-            self.doc_info_text.config(state=tk.DISABLED)
-            
-            print(f"已加载Excel文件: {file_path}")
-        except Exception as e:
-            print(f"加载Excel文件时出错: {str(e)}")
-            self.content_text.delete(1.0, tk.END)
-            self.content_text.insert(1.0, f"无法加载Excel文件内容: {str(e)}")
-    
-    def save_template_file(self):
-        """
-        保存模板文件（简化版，仅提示用户已在外部编辑器中保存）
-        """
-        if not hasattr(self, 'current_template_file') or not self.current_template_file:
-            print("请先选择一个文件")
-            return
-        
-        print(f"请在您使用的文档编辑软件中保存文件: {self.current_template_file}")
-        print("该工具不直接保存文件内容，仅提供占位符复制功能")
-
-    
-    def save_as_docx(self, file_path, content):
-        """
-        保存为Word文档（保持原始格式，只更新文本内容）
-        :param file_path: 文件路径
-        :param content: 文档内容
-        """
-        try:
-            # 如果有原始文档对象引用，则基于原始文档更新文本内容
-            if hasattr(self, 'current_doc_object') and self.current_doc_object:
-                doc = self.current_doc_object
-                
-                # 按行分割内容
-                lines = content.split('\n')
-                
-                # 更新段落索引
-                paragraph_index = 0
-                
-                # 遍历文档中的段落
-                for i, paragraph in enumerate(doc.paragraphs):
-                    # 如果还有可用内容
-                    if paragraph_index < len(lines):
-                        line = lines[paragraph_index]
-                        
-                        # 跳过表格标记行
-                        if line.startswith("--- 表格"):
-                            paragraph_index += 1
-                            continue
-                        
-                        # 更新段落文本
-                        self.replace_text_in_paragraph(paragraph, 
-                                                     {'{.*}': line})  # 这里简化处理，实际应该更精确
-                        
-                        paragraph_index += 1
-                
-                # 保存文档
-                doc.save(file_path)
-            else:
-                # 没有原始文档对象，创建新文档
-                doc = Document()
-                
-                # 按行分割内容并添加到文档中
-                lines = content.split('\n')
-                for line in lines:
-                    # 跳过表格标记行
-                    if line.startswith("--- 表格"):
-                        continue
-                    doc.add_paragraph(line)
-                
-                doc.save(file_path)
-                
-                # 保存新创建的文档对象引用
-                self.current_doc_object = doc
-        except Exception as e:
-            raise Exception(f"保存Word文档时出错: {str(e)}")
-    
-    def save_as_xlsx(self, file_path, content):
-        """
-        保存为Excel文件（简单实现）
-        :param file_path: 文件路径
-        :param content: 文件内容
-        """
-        try:
-            if not EXCEL_PROCESSING_AVAILABLE:
-                raise Exception("Excel处理功能不可用，请安装openpyxl库")
-            
-            workbook = Workbook()
-            sheet = workbook.active
-            sheet.title = "模板"
-            
-            # 按行分割内容并添加到工作表中
-            lines = content.split('\n')
-            for row_idx, line in enumerate(lines, 1):
-                # 简单按逗号分割列
-                columns = line.split(',') if line else [""]
-                for col_idx, value in enumerate(columns, 1):
-                    sheet.cell(row=row_idx, column=col_idx, value=value)
-            
-            workbook.save(file_path)
-        except Exception as e:
-            raise Exception(f"保存Excel文件时出错: {str(e)}")
     
     def setup_main_tab(self):
         """
@@ -2994,18 +2830,6 @@ class DocumentProcessorUI:
         
         # 自动加载选中的方案
         self.load_scheme()
-    
-    def save_template_file(self):
-        """
-        保存模板文件
-        """
-        file_path = filedialog.asksaveasfilename(defaultextension=".xlsx",
-                                               filetypes=[("Excel files", "*.xlsx")])
-        if file_path:
-            self.template_file_path = file_path
-            self.save_scheme()
-            self.save_template()
-            print(f"模板文件已保存到: {file_path}")
     
     def delete_scheme(self):
         """
@@ -3465,13 +3289,15 @@ class DocumentProcessorUI:
         """
         # 创建日期修改对话框
         date_dialog = tk.Toplevel(self.root)
-        date_dialog.title("修改日期")
-        date_dialog.geometry("300x150")
-        date_dialog.resizable(False, False)
-        
+
         # 居中显示对话框
+        self.center_dialog(date_dialog, 300, 80)
         date_dialog.transient(self.root)
         date_dialog.grab_set()
+
+        date_dialog.title("修改日期")
+        date_dialog.geometry("300x80")
+        date_dialog.resizable(False, False)
         
         # 获取当前日期值
         current_date = self.input_fields.get('日期', datetime.now().strftime('%Y年%m月%d日'))
@@ -3487,28 +3313,36 @@ class DocumentProcessorUI:
             current_year = current_datetime.year
             current_month = current_datetime.month
             current_day = current_datetime.day
+
+        # 创建主框架
+        main_frame = ttk.Frame(date_dialog, padding="5")
+        main_frame.pack(fill=tk.BOTH, expand=True)
+
+        # 第一行：年月日输入框
+        date_frame = ttk.Frame(main_frame)
+        date_frame.pack(fill=tk.X, pady=(5, 5))
         
         # 年份输入
-        ttk.Label(date_dialog, text="年份:").grid(row=0, column=0, sticky=tk.W, padx=10, pady=10)
+        ttk.Label(date_frame, text="年份:").pack(side=tk.LEFT)
         year_var = tk.StringVar(value=str(current_year))
-        year_entry = ttk.Entry(date_dialog, textvariable=year_var, width=10)
-        year_entry.grid(row=0, column=1, sticky=tk.W, padx=10, pady=10)
+        year_entry = ttk.Entry(date_frame, textvariable=year_var, width=8)
+        year_entry.pack(side=tk.LEFT, padx=(5, 5))
         
         # 月份输入
-        ttk.Label(date_dialog, text="月份:").grid(row=1, column=0, sticky=tk.W, padx=10, pady=5)
+        ttk.Label(date_frame, text="月份:").pack(side=tk.LEFT)
         month_var = tk.StringVar(value=str(current_month))
-        month_entry = ttk.Entry(date_dialog, textvariable=month_var, width=10)
-        month_entry.grid(row=1, column=1, sticky=tk.W, padx=10, pady=5)
+        month_entry = ttk.Entry(date_frame, textvariable=month_var, width=5)
+        month_entry.pack(side=tk.LEFT, padx=(5, 5))
         
         # 日期输入
-        ttk.Label(date_dialog, text="日期:").grid(row=2, column=0, sticky=tk.W, padx=10, pady=5)
+        ttk.Label(date_frame, text="日期:").pack(side=tk.LEFT)
         day_var = tk.StringVar(value=str(current_day))
-        day_entry = ttk.Entry(date_dialog, textvariable=day_var, width=10)
-        day_entry.grid(row=2, column=1, sticky=tk.W, padx=10, pady=5)
-        
-        # 按钮区域
-        button_frame = ttk.Frame(date_dialog)
-        button_frame.grid(row=3, column=0, columnspan=2, pady=10)
+        day_entry = ttk.Entry(date_frame, textvariable=day_var, width=5)
+        day_entry.pack(side=tk.LEFT, padx=(5, 5))
+
+        # 第二行：按钮区域
+        button_frame = ttk.Frame(main_frame)
+        button_frame.pack(fill=tk.X, pady=(5, 5))
         
         def confirm_date():
             try:
@@ -3536,9 +3370,13 @@ class DocumentProcessorUI:
             self.input_fields['日期'] = today
             date_dialog.destroy()
         
-        ttk.Button(button_frame, text="确定", command=confirm_date).pack(side=tk.LEFT, padx=5)
+        # 按钮居中放置
         ttk.Button(button_frame, text="使用今天", command=use_today).pack(side=tk.LEFT, padx=5)
+        ttk.Button(button_frame, text="确定", command=confirm_date).pack(side=tk.LEFT, padx=5)
         ttk.Button(button_frame, text="取消", command=date_dialog.destroy).pack(side=tk.LEFT, padx=5)
+        
+        # 使按钮框架内容居中
+        button_frame.pack_configure(anchor=tk.CENTER)
     
     def save_user_inputs(self):
         """
