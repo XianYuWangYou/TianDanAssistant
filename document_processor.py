@@ -837,9 +837,9 @@ class DocumentProcessorUI:
             if "user_inputs" not in config:
                 config["user_inputs"] = {}
             
-            # 保存当前方案的用户输入（排除日期字段）
-            filtered_inputs = {k: v for k, v in user_inputs.items() if k != '日期'}
-            config["user_inputs"][scheme_name] = filtered_inputs
+            # 保存当前方案的用户输入（之前会排除日期字段，现在不再排除）
+            # 修复：删除无用的filtered_inputs变量，直接使用user_inputs
+            config["user_inputs"][scheme_name] = user_inputs
             
             # 保存配置
             with open("config.json", "w", encoding="utf-8") as f:
@@ -3308,8 +3308,8 @@ class DocumentProcessorUI:
                         elif isinstance(widget, ttk.Label):
                             # 对于日期标签，更新显示文本
                             widget.config(text=value)
-                            # 更新存储的值
-                            self.input_fields[placeholder] = value
+                            # 不替换self.input_fields中的控件引用
+                            # 而是在modify_placeholder_date方法中维护一个单独的映射来跟踪值的变化
 
     def modify_placeholder_date(self, date_label):
         """
@@ -3380,9 +3380,10 @@ class DocumentProcessorUI:
             today = datetime.now().strftime('%Y年%m月%d日')
             date_label.config(text=today)
             # 更新存储的值
-            for key, widget in self.input_fields.items():
+            for placeholder, widget in self.input_fields.items():
                 if widget == date_label:
-                    self.input_fields[key] = today
+                    # 保持控件引用不变，只更新值
+                    self.input_fields[placeholder] = today
                     break
             date_dialog.destroy()
         
@@ -3398,12 +3399,13 @@ class DocumentProcessorUI:
                 # 格式化为指定格式
                 new_date = f"{year}年{month:02d}月{day:02d}日"
                 
-                # 更新显示和存储
+                # 更新显示
                 date_label.config(text=new_date)
                 # 更新存储的值
-                for key, widget in self.input_fields.items():
+                for placeholder, widget in self.input_fields.items():
                     if widget == date_label:
-                        self.input_fields[key] = new_date
+                        # 保持控件引用不变，只更新值
+                        self.input_fields[placeholder] = new_date
                         break
                 
                 date_dialog.destroy()
@@ -3619,6 +3621,9 @@ class DocumentProcessorUI:
             elif isinstance(widget, ttk.Label):
                 # 日期标签控件
                 user_inputs[placeholder] = widget.cget("text")
+            else:
+                # 对于已更新为字符串值的日期类型占位符，直接使用值
+                user_inputs[placeholder] = widget
         
         # 确保日期字段存在
         if '日期' not in user_inputs:
