@@ -635,7 +635,7 @@ class DocumentProcessorUI:
         # 将窗口居中显示
         self.center_window()
         self.root.title("填单助手 By:www.52pojie.cn@xianyuwangyou")
-        self.root.geometry("800x600")
+        self.root.geometry("800x650")
         self.root.resizable(False, False)
         
         # 设置窗口图标
@@ -700,7 +700,7 @@ class DocumentProcessorUI:
         """
         # 使用固定的窗口尺寸
         width = 800
-        height = 600
+        height = 650
         
         # 获取屏幕尺寸
         screen_width = self.root.winfo_screenwidth()
@@ -2888,6 +2888,13 @@ class DocumentProcessorUI:
         self.input_canvas.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
         self.input_scrollbar.grid(row=0, column=1, sticky=(tk.N, tk.S))
         
+        # 添加保存按钮框架
+        save_button_frame = ttk.Frame(right_frame)
+        save_button_frame.grid(row=1, column=0, columnspan=2, pady=(5, 0), sticky=(tk.W, tk.E))
+        
+        # 添加保存按钮
+        ttk.Button(save_button_frame, text="保存录入内容", command=self.save_user_inputs).pack(pady=5)
+        
         right_frame.columnconfigure(0, weight=1)
         right_frame.rowconfigure(0, weight=1)
         
@@ -3865,6 +3872,36 @@ class DocumentProcessorUI:
         ttk.Button(button_frame, text="使用今天", command=use_today).pack(side=tk.LEFT, padx=5)
         ttk.Button(button_frame, text="取消", command=date_dialog.destroy).pack(side=tk.LEFT, padx=5)
     
+    def save_user_inputs(self):
+        """
+        保存用户录入的内容
+        """
+        if not self.current_scheme:
+            self.log_and_status("警告: 请先选择一个方案")
+            return
+        
+        # 收集用户输入
+        user_inputs = {}
+        for placeholder, widget in self.input_fields.items():
+            if placeholder == '日期':
+                user_inputs[placeholder] = widget  # 日期字段是字符串
+                continue
+                    
+            if isinstance(widget, ttk.Entry):
+                user_inputs[placeholder] = widget.get()
+            elif isinstance(widget, ttk.Combobox):
+                user_inputs[placeholder] = widget.get()
+        
+        # 确保日期字段存在
+        if '日期' not in user_inputs:
+            today = datetime.now().strftime('%Y年%m月%d日')
+            user_inputs['日期'] = today
+        
+        # 保存当前用户输入
+        if self.current_scheme:
+            self.save_user_inputs_for_scheme(self.current_scheme, user_inputs)
+            self.log_and_status(f"成功: 已保存'{self.current_scheme}'方案的用户录入内容")
+    
     def generate_documents(self):
         """
         生成文档（在新线程中执行）
@@ -3878,36 +3915,26 @@ class DocumentProcessorUI:
         """
         在线程中执行文档生成操作
         """
-        if not self.current_scheme:
-            self.log_and_status("警告: 请先选择一个方案")
-            return
-        
-        if not self.template_files:
-            self.log_and_status("警告: 当前方案没有模板文件")
-            return
-        
-        # 收集用户输入
-        user_inputs = {}
-        for placeholder, widget in self.input_fields.items():
-            if placeholder == '日期':
-                user_inputs[placeholder] = widget  # 日期字段是字符串
-                continue
-                    
-            if isinstance(widget, ttk.Entry):
-                user_inputs[placeholder] = widget.get()
-            
-        # 确保日期字段存在
-        if '日期' not in user_inputs:
-            today = datetime.now().strftime('%Y年%m月%d日')
-            user_inputs['日期'] = today
-        
-        # 保存当前用户输入
-        if self.current_scheme:
-            self.save_user_inputs_for_scheme(self.current_scheme, user_inputs)
         
         # 处理模板
         try:
             self.update_status("开始生成文档...")
+            # 收集用户输入
+            user_inputs = {}
+            for placeholder, widget in self.input_fields.items():
+                if placeholder == '日期':
+                    user_inputs[placeholder] = widget  # 日期字段是字符串
+                    continue
+                        
+                if isinstance(widget, ttk.Entry):
+                    user_inputs[placeholder] = widget.get()
+                elif isinstance(widget, ttk.Combobox):
+                    user_inputs[placeholder] = widget.get()
+            
+            # 确保日期字段存在
+            if '日期' not in user_inputs:
+                today = datetime.now().strftime('%Y年%m月%d日')
+                user_inputs['日期'] = today
             self.generated_files = self.processor.process_templates(self.template_files, user_inputs, self.output_dir)
             self.log_and_status(f"成功: 文档生成完成！文件已保存到 {self.output_dir} 目录中。")
             
