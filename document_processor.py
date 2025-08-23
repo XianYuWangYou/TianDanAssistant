@@ -581,49 +581,6 @@ class DocumentProcessor:
                     status_callback(error_msg)
                 print(f"删除文件 {pdf_path} 时出错: {str(e)}")
 
-    def get_placeholder_config(self, placeholder):
-        """
-        获取占位符配置
-        :param placeholder: 占位符名称
-        :return: 配置字典
-        """
-        try:
-            if os.path.exists("config.json"):
-                with open("config.json", "r", encoding="utf-8") as f:
-                    config = json.load(f)
-                return config.get("placeholder_configs", {}).get(placeholder, {})
-            else:
-                return {}
-        except Exception as e:
-            print(f"加载占位符配置时出错: {e}")
-            return {}
-    
-    def save_placeholder_config(self, placeholder, config):
-        """
-        保存占位符配置
-        :param placeholder: 占位符名称
-        :param config: 配置字典
-        """
-        try:
-            # 读取现有配置
-            main_config = {}
-            if os.path.exists("config.json"):
-                with open("config.json", "r", encoding="utf-8") as f:
-                    main_config = json.load(f)
-            
-            # 确保placeholder_configs键存在
-            if "placeholder_configs" not in main_config:
-                main_config["placeholder_configs"] = {}
-            
-            # 保存当前占位符配置
-            main_config["placeholder_configs"][placeholder] = config
-            
-            # 保存配置
-            with open("config.json", "w", encoding="utf-8") as f:
-                json.dump(main_config, f, ensure_ascii=False, indent=2)
-        except Exception as e:
-            print(f"保存占位符配置时出错: {e}")
-
 
 class DocumentProcessorUI:
     def __init__(self, root):
@@ -1040,43 +997,6 @@ class DocumentProcessorUI:
         # 使用说明
         instruction_frame = ttk.Frame(right_frame)
         instruction_frame.grid(row=2, column=0, sticky=(tk.W, tk.E), pady=(10, 0))
-        
-        instructions = """
-使用说明：
-1. 点击"打开模板目录"打开模板所在文件夹
-2. 点击“转换为docx/xlsx”按钮，将文件夹内的文件转换为软件可用的格式
-3. 打开需要编辑的文件，在左侧选择占位符，然后点击"复制占位符到剪贴板"按钮
-3. 按Ctrl+V粘贴占位符到需要填充的位置
-4. 编辑完成后，保存文件。
-        """.strip()
-        
-        ttk.Label(instruction_frame, text=instructions, foreground="gray").pack(anchor=tk.W)
-        
-        # 初始化占位符列表和方案选择器
-        self.refresh_placeholders_list()
-
-    def copy_placeholder_to_clipboard(self):
-        """
-        将选中的占位符复制到剪贴板
-        """
-        # 检查是否选择了占位符
-        selection = self.placeholder_listbox.curselection()
-        if not selection:
-            print("请先选择一个占位符")
-            return
-        
-        placeholder = self.placeholder_listbox.get(selection[0])
-        formatted_placeholder = f"{{{placeholder}}}"
-        
-        try:
-            # 使用tkinter内置的剪贴板功能
-            self.root.clipboard_clear()
-            self.root.clipboard_append(formatted_placeholder)
-            self.root.update()  # 确保剪贴板更新
-            
-            print(f"已将占位符 {formatted_placeholder} 复制到剪贴板")
-        except Exception as e:
-            print(f"复制占位符到剪贴板时出错: {str(e)}")
 
     def ask_to_open_output_dir(self):
         """
@@ -1170,23 +1090,6 @@ class DocumentProcessorUI:
             
             # 更新占位符列表
             self.refresh_placeholders_list()
-
-    def refresh_placeholders_list(self):
-        """
-        刷新占位符列表
-        """
-        def update_ui():
-            # 默认禁用删除按钮
-            self.delete_placeholder_button.config(state=tk.DISABLED)
-                
-            self.placeholder_listbox.delete(0, tk.END)
-            self.placeholder_listbox.insert(tk.END, *self.ordered_placeholders)
-            if self.ordered_placeholders:
-                # self.update_status(f"刷新完成，找到 {len(all_placeholders)} 个占位符")
-                # 启用删除按钮
-                self.delete_placeholder_button.config(state=tk.NORMAL)
-            
-            self.root.after(0, update_ui)
 
     def open_selected_folder(self):
         """
@@ -1584,20 +1487,6 @@ class DocumentProcessorUI:
         except Exception as e:
             print(f"加载Word文档时出错: {str(e)}")
 
-    def load_docx_content(self):
-        """
-        加载Word文档内容
-        """
-        if not hasattr(self, 'current_template_file') or not self.current_template_file:
-            print("请先选择一个Word文档")
-            return
-        
-        try:
-            # 显示文档信息
-            self.display_word_doc_info(self.current_template_file)
-        except Exception as e:
-            print(f"加载Word文档时出错: {str(e)}")
-
     def display_word_doc_info(self, file_path):
         """
         显示Word文档信息
@@ -1642,67 +1531,6 @@ class DocumentProcessorUI:
             self.doc_info_text.delete(1.0, tk.END)
             self.doc_info_text.insert(1.0, error_info)
             self.doc_info_text.config(state=tk.DISABLED)
-
-    def edit_in_word(self):
-        """
-        在Word或WPS中编辑当前文档
-        """
-        if not hasattr(self, 'current_template_file') or not self.current_template_file:
-            print("请先选择一个Word文档")
-            return
-        
-        try:
-            import win32com.client
-            import os
-            
-            # 获取文件的绝对路径
-            abs_path = os.path.abspath(self.current_template_file)
-            
-            # 尝试连接到正在运行的Word应用程序
-            try:
-                self.word_app = win32com.client.GetActiveObject("Word.Application")
-                self.app_type = "Word"
-                print("已连接到正在运行的Word应用程序")
-            except:
-                # 如果没有运行的Word，尝试连接到WPS
-                try:
-                    self.word_app = win32com.client.GetActiveObject("KWPS.Application")
-                    self.app_type = "WPS"
-                    print("已连接到正在运行的WPS应用程序")
-                except:
-                    # 如果没有运行的WPS，尝试启动新的Word实例
-                    try:
-                        self.word_app = win32com.client.Dispatch("Word.Application")
-                        self.app_type = "Word"
-                        print("已启动新的Word应用程序")
-                    except:
-                        # 如果无法启动Word，尝试启动WPS
-                        try:
-                            self.word_app = win32com.client.Dispatch("KWPS.Application")
-                            self.app_type = "WPS"
-                            print("已启动新的WPS应用程序")
-                        except:
-                            print("无法连接到Word或WPS应用程序")
-                            print("请确保已安装Microsoft Word或WPS Office")
-                            return
-            
-            self.word_app.Visible = True  # 显示应用程序
-            
-            # 打开文档
-            if self.app_type == "Word":
-                self.word_doc = self.word_app.Documents.Open(abs_path)
-            else:  # WPS
-                self.word_doc = self.word_app.Documents.Open(abs_path)
-            
-            print(f"已在{self.app_type}中打开文档: {self.current_template_file}")
-            print(f"请在{self.app_type}中进行编辑")
-            
-        except Exception as e:
-            print(f"在Word/WPS中编辑文档时出错: {str(e)}")
-            print("请确保：")
-            print("1. 已安装Microsoft Word或WPS Office")
-            print("2. 已安装pywin32库 (pip install pywin32)")
-            print("3. 以足够权限运行程序")
 
     def insert_placeholder_to_word(self):
         """
@@ -2300,26 +2128,6 @@ class DocumentProcessorUI:
         """
         # 实际上，占位符是在文档中手动添加的，这里不需要做任何事情
         pass
-
-    def copy_placeholder_to_clipboard(self):
-        """
-        将选中的占位符复制到剪贴板
-        """
-        selection = self.placeholder_listbox.curselection()
-        if not selection:
-            print("请先选择一个占位符")
-            return
-        
-        placeholder = self.placeholder_listbox.get(selection[0])
-        formatted_placeholder = f"{{{placeholder}}}"
-        # 使用Tkinter内置剪贴板功能替代pyperclip
-        try:
-            self.root.clipboard_clear()
-            self.root.clipboard_append(formatted_placeholder)
-            self.root.update()
-            self.update_status(f"已复制占位符: {formatted_placeholder}，请在文档中粘贴")
-        except Exception as e:
-            self.update_status(f"复制失败: {e}")
     
     def add_placeholder_button_frame(self):
         """
@@ -2416,89 +2224,6 @@ class DocumentProcessorUI:
             self.auto_open_document(file_path)
         except Exception as e:
             error_info = f"无法读取文档信息: {str(e)}"
-            self.doc_info_text.config(state=tk.NORMAL)
-            self.doc_info_text.delete(1.0, tk.END)
-            self.doc_info_text.insert(1.0, error_info)
-            self.doc_info_text.config(state=tk.DISABLED)
-            print(error_info)
-
-    def auto_open_document(self, file_path):
-        """
-        自动打开文档
-        :param file_path: 文件路径
-        """
-        try:
-            os.startfile(file_path)
-        except Exception as e:
-            error_info = f"无法打开文档: {str(e)}"
-            self.doc_info_text.config(state=tk.NORMAL)
-            self.doc_info_text.delete(1.0, tk.END)
-            self.doc_info_text.insert(1.0, error_info)
-            self.doc_info_text.config(state=tk.DISABLED)
-            print(error_info)
-    
-    def load_docx_content(self, file_path):
-        """
-        加载Word文档内容
-        :param file_path: 文件路径
-        """
-        try:
-            doc = Document(file_path)
-            self.doc_info_text.config(state=tk.NORMAL)
-            self.doc_info_text.delete(1.0, tk.END)
-            self.doc_info_text.insert(1.0, "```\n" + doc.paragraphs[0].text + "\n```")
-            self.doc_info_text.config(state=tk.DISABLED)
-            
-            self.current_file_label.config(text=f"当前文件: {os.path.basename(file_path)}")
-            self.current_template_file = file_path
-            print(f"已加载文件: {file_path}")
-            
-            # 自动打开文档
-            self.auto_open_document(file_path)
-        except Exception as e:
-            error_info = f"无法读取Word文档: {str(e)}"
-            self.doc_info_text.config(state=tk.NORMAL)
-            self.doc_info_text.delete(1.0, tk.END)
-            self.doc_info_text.insert(1.0, error_info)
-            self.doc_info_text.config(state=tk.DISABLED)
-            print(error_info)
-    
-    def load_xlsx_content(self, file_path):
-        """
-        加载Excel文件内容
-        :param file_path: 文件路径
-        """
-        try:
-            workbook = load_workbook(file_path)
-            sheet = workbook.active
-            self.doc_info_text.config(state=tk.NORMAL)
-            self.doc_info_text.delete(1.0, tk.END)
-            self.doc_info_text.insert(1.0, "```\n" + sheet['A1'].value + "\n```")
-            self.doc_info_text.config(state=tk.DISABLED)
-            
-            self.current_file_label.config(text=f"当前文件: {os.path.basename(file_path)}")
-            self.current_template_file = file_path
-            print(f"已加载文件: {file_path}")
-            
-            # 自动打开文档
-            self.auto_open_document(file_path)
-        except Exception as e:
-            error_info = f"无法读取Excel文件: {str(e)}"
-            self.doc_info_text.config(state=tk.NORMAL)
-            self.doc_info_text.delete(1.0, tk.END)
-            self.doc_info_text.insert(1.0, error_info)
-            self.doc_info_text.config(state=tk.DISABLED)
-            print(error_info)
-    
-    def auto_open_document(self, file_path):
-        """
-        自动打开文档
-        :param file_path: 文件路径
-        """
-        try:
-            os.startfile(file_path)
-        except Exception as e:
-            error_info = f"无法自动打开文档: {str(e)}"
             self.doc_info_text.config(state=tk.NORMAL)
             self.doc_info_text.delete(1.0, tk.END)
             self.doc_info_text.insert(1.0, error_info)
@@ -3000,31 +2725,6 @@ class DocumentProcessorUI:
             except Exception as e:
                 print(f"加载方案时出错: {e}")
     
-    def load_saved_schemes_combobox(self):
-        """
-        加载已保存方案下拉菜单
-        """
-        if os.path.exists("schemes.json"):
-            try:
-                with open("schemes.json", "r", encoding="utf-8") as f:
-                    schemes = json.load(f)
-                scheme_names = list(schemes.keys())
-                self.saved_schemes_combobox['values'] = scheme_names
-                # 不再自动选择第一个方案，保持下拉菜单默认为空
-                # if scheme_names:
-                #     self.saved_schemes_combobox.current(0)
-                #     self.on_config_scheme_selected(None)  # 触发默认加载第一个方案
-            except Exception as e:
-                print(f"加载方案下拉菜单时出错: {e}")
-    
-    def on_config_scheme_selected(self, event):
-        """
-        当选择方案时加载方案数据
-        """
-        selected_scheme = self.saved_schemes_combobox.get()
-        if selected_scheme:
-            self.load_scheme_by_name(selected_scheme)
-    
     def setup_config_tab(self):
         """
         设置配置方案标签页（改为2栏式布局）
@@ -3141,38 +2841,6 @@ class DocumentProcessorUI:
                 #     self.on_config_scheme_selected(None)  # 触发默认加载第一个方案
             except Exception as e:
                 print(f"加载方案下拉菜单时出错: {e}")
-    
-    def on_config_scheme_selected(self, event):
-        """
-        当选择方案时加载方案数据
-        """
-        scheme_name = self.saved_schemes_combobox.get()
-        if not scheme_name:
-            return
-        
-        # 读取方案数据
-        try:
-            with open("schemes.json", "r", encoding="utf-8") as f:
-                schemes = json.load(f)
-            
-            scheme_data = schemes.get(scheme_name)
-            if not scheme_data:
-                return
-            
-            # 更新界面元素
-            self.template_files = scheme_data["template_files"]
-            self.ordered_placeholders = scheme_data["placeholder_order"]
-            
-            # 更新模板文件列表
-            self.config_template_listbox.delete(0, tk.END)
-            for file in self.template_files:
-                self.config_template_listbox.insert(tk.END, file)
-            
-            # 更新用户录入区域
-            self.update_config_input_area()
-            
-        except Exception as e:
-            print(f"加载方案时出错: {e}")
     
     def update_config_input_area(self):
         """
