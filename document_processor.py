@@ -3671,65 +3671,7 @@ class DocumentProcessorUI:
             error_msg = f"错误: 合并PDF时出错：{str(e)}"
             self.log_and_status(error_msg)
             # 使用状态栏显示替代弹窗提示，符合用户偏好
-            self.update_status("可能的解决方案：")
-            self.update_status("1. 确保Microsoft Word/Excel已正确安装")
-            self.update_status("2. 尝试以管理员身份运行程序")
-            self.update_status("3. 检查杀毒软件是否阻止了相关进程")
-            self.update_status("4. 确保输出目录有写入权限")
-            self.update_status("5. 尝试安装LibreOffice作为备选的文档转换工具")
-            self.update_status("6. 重启计算机以释放可能被占用的Office进程")
-
-
-    def setup_help_tab(self):
-        """
-        设置使用说明标签页
-        """
-        help_frame = ttk.Frame(self.help_frame, padding="10")
-        help_frame.pack(fill=tk.BOTH, expand=True)
-        
-        # 创建文本框和滚动条
-        help_text_frame = ttk.Frame(help_frame)
-        help_text_frame.pack(fill=tk.BOTH, expand=True)
-        
-        help_text = tk.Text(help_text_frame, wrap=tk.WORD)
-        scrollbar = ttk.Scrollbar(help_text_frame, orient="vertical", command=help_text.yview)
-        help_text.configure(yscrollcommand=scrollbar.set)
-        
-        # 配置文本标签样式
-        help_text.tag_configure("title", font=("微软雅黑", 14, "bold"), foreground="darkblue")
-        help_text.tag_configure("section", font=("微软雅黑", 11, "bold"), foreground="darkgreen")
-        help_text.tag_configure("subsection", font=("微软雅黑", 10, "bold"), foreground="darkred")
-        help_text.tag_configure("content", font=("微软雅黑", 10))
-        help_text.tag_configure("note", font=("微软雅黑", 10), foreground="purple")
-        
-        # 硬编码使用说明内容
-        # 标题
-        help_text.insert(tk.END, "填单助手使用说明\n\n", "title")
-        
-        # 基本功能
-        help_text.insert(tk.END, "一、基本功能\n", "section")
-        help_text.insert(tk.END, "用于按预设模板批量生成Word和Excel文档，减少重复填单工作量。\n\n", "content")
-        
-        # 使用流程
-        help_text.insert(tk.END, "二、使用流程\n", "section")
-        help_text.insert(tk.END, "配置文档模板：查看占位符，复制指定占位符到打开的到Word/Excel文件中，保存为文档模板。\n", "content")
-        help_text.insert(tk.END, "配置文档组合：将多个文档模板保存为一个组合，便于后续数据录入。\n", "content")
-        help_text.insert(tk.END, "数据录入：选择方案，填写内容，按照文档组合批量形成文档。\n\n", "content")
-                
-        # 占位符格式
-        help_text.insert(tk.END, "三、占位符格式\n", "section")
-        help_text.insert(tk.END, "格式为{占位符名称}，如{姓名}，不可包含特殊字符\n\n", "content")
-        
-        # 注意事项
-        help_text.insert(tk.END, "四、注意事项\n", "section")
-        help_text.insert(tk.END, "1.生成文档保存在指定目录，命名为\"原文件名_已填充.扩展名\"\n", "content")
-        help_text.insert(tk.END, "2.请使用docx、xlsx文件进行操作\n\n", "content")
-        
-        help_text.config(state=tk.DISABLED)  # 设置为只读
-        
-        help_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-
+            self.update_status("请重启软件并关闭所有office相关软件。")
 
 def main():
     """
