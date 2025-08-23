@@ -3547,29 +3547,44 @@ class DocumentProcessorUI:
             # 标签
             ttk.Label(self.config_input_scrollable_frame, text=f"{placeholder}:").grid(row=i, column=0, sticky=tk.W, pady=2)
             
-            # 输入框（只用于显示，不用于输入）
-            entry = ttk.Entry(self.config_input_scrollable_frame, width=25)
-            entry.grid(row=i, column=1, sticky=(tk.W, tk.E), pady=2, padx=(5, 0))
-            entry.insert(0, f"<{placeholder}>")
-            entry.configure(state='readonly')  # 只读状态
-            self.input_fields[placeholder] = entry
+            # 获取占位符配置
+            config = self.get_placeholder_config(placeholder)
+            
+            # 根据配置创建不同类型的输入控件预览
+            if config.get("type") == "combobox":
+                # 创建下拉框预览
+                options = config.get("options", [f"<{placeholder}>"])
+                combobox = ttk.Combobox(self.config_input_scrollable_frame, values=options, width=25, state="readonly")
+                combobox.grid(row=i, column=1, sticky=(tk.W, tk.E), pady=2, padx=(5, 0))
+                combobox.set(options[0] if options else f"<{placeholder}>")
+                self.input_fields[placeholder] = combobox
+            else:
+                # 创建普通文本框预览
+                entry = ttk.Entry(self.config_input_scrollable_frame, width=25)
+                entry.grid(row=i, column=1, sticky=(tk.W, tk.E), pady=2, padx=(5, 0))
+                entry.insert(0, f"<{placeholder}>")
+                entry.configure(state='readonly')  # 只读状态
+                self.input_fields[placeholder] = entry
             
             # 设置按钮（在↑箭头左边）
+            # 使用functools.partial来正确传递参数
+            import functools
             setting_button = ttk.Button(
                 self.config_input_scrollable_frame,
                 text="⚙",
                 width=3,
-                command=lambda p=placeholder: self.configure_placeholder_type(p)
+                command=functools.partial(self.configure_placeholder_type, placeholder)
             )
             setting_button.grid(row=i, column=2, pady=2, padx=(5, 0))
             
             # 上移按钮（第一个元素不显示）
             if i > 0:
+                # 同样使用functools.partial来正确传递索引参数
                 up_button = ttk.Button(
                     self.config_input_scrollable_frame, 
                     text="↑", 
                     width=3,
-                    command=lambda idx=i: self.move_up(idx)
+                    command=functools.partial(self.move_up, i)
                 )
                 up_button.grid(row=i, column=3, pady=2, padx=(5, 0))
         
@@ -3581,6 +3596,24 @@ class DocumentProcessorUI:
         
         # 配置输入区域的列权重
         self.config_input_scrollable_frame.columnconfigure(1, weight=1)
+        
+        # 加载该方案的上次用户输入以正确显示下拉框选项
+        if self.current_scheme:
+            last_inputs = self.load_user_inputs_for_scheme(self.current_scheme)
+            if last_inputs:
+                # 更新下拉框预览中的选项和选中值
+                for placeholder, value in last_inputs.items():
+                    if placeholder in self.input_fields:
+                        widget = self.input_fields[placeholder]
+                        if isinstance(widget, ttk.Combobox):
+                            # 对于下拉框，检查值是否在选项中，如果不在则添加
+                            current_values = list(widget['values'])
+                            if value not in current_values and value:
+                                # 添加新值到选项中
+                                current_values.append(value)
+                                widget['values'] = current_values
+                            # 设置当前值
+                            widget.set(value)
     
     def configure_placeholder_type(self, placeholder):
         """
@@ -3723,6 +3756,26 @@ class DocumentProcessorUI:
         
         # 配置输入区域的列权重
         self.input_scrollable_frame.columnconfigure(1, weight=1)
+        
+        # 加载该方案的上次用户输入
+        if self.current_scheme:
+            last_inputs = self.load_user_inputs_for_scheme(self.current_scheme)
+            if last_inputs:
+                # 填充上次的用户输入
+                for placeholder, value in last_inputs.items():
+                    if placeholder in self.input_fields:
+                        widget = self.input_fields[placeholder]
+                        if isinstance(widget, ttk.Combobox):
+                            # 对于下拉框，设置值（如果该值在选项中）
+                            if value in widget['values']:
+                                widget.set(value)
+                            # 如果值不在选项中但不为空，则添加到选项中（防止数据丢失）
+                            elif value:
+                                widget['values'] = list(widget['values']) + [value]
+                                widget.set(value)
+                        elif isinstance(widget, ttk.Entry):
+                            widget.delete(0, tk.END)
+                            widget.insert(0, value)
     
     def modify_date(self):
         """
