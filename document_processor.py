@@ -3129,11 +3129,11 @@ class DocumentProcessorUI:
         # 创建配置对话框
         config_dialog = tk.Toplevel(self.root)
         config_dialog.title(f"配置占位符 '{placeholder}'")
-        config_dialog.geometry("300x200")
+        config_dialog.geometry("300x250")
         config_dialog.resizable(False, False)
         
         # 居中显示对话框
-        self.center_dialog(config_dialog, 300, 200)
+        self.center_dialog(config_dialog, 300, 250)
         config_dialog.transient(self.root)
         config_dialog.grab_set()
         
@@ -3157,6 +3157,9 @@ class DocumentProcessorUI:
         
         combobox_radio = ttk.Radiobutton(type_frame, text="下拉框", variable=type_var, value="combobox")
         combobox_radio.pack(anchor=tk.W)
+        
+        date_radio = ttk.Radiobutton(type_frame, text="日期类型框", variable=type_var, value="date")
+        date_radio.pack(anchor=tk.W)
         
         # 下拉框选项输入区域
         options_frame = ttk.Frame(config_dialog)
@@ -3183,7 +3186,7 @@ class DocumentProcessorUI:
         
         # 按钮区域
         button_frame = ttk.Frame(config_dialog)
-        button_frame.grid(row=2, column=0, columnspan=2, pady=5)
+        button_frame.grid(row=3, column=0, columnspan=2, pady=5)
         
         def save_config():
             # 保存配置
@@ -3233,6 +3236,26 @@ class DocumentProcessorUI:
                 combobox = ttk.Combobox(self.input_scrollable_frame, values=options, width=25, state="readonly")
                 combobox.grid(row=i, column=1, sticky=(tk.W, tk.E), pady=2, padx=(5, 0))
                 self.input_fields[placeholder] = combobox
+            elif config.get("type") == "date":
+                # 创建日期选择框
+                date_frame = ttk.Frame(self.input_scrollable_frame)
+                date_frame.grid(row=i, column=1, sticky=(tk.W, tk.E), pady=2, padx=(5, 0))
+                
+                # 日期显示标签
+                today = datetime.now().strftime('%Y年%m月%d日')
+                date_label = ttk.Label(date_frame, text=today)
+                date_label.pack(side=tk.LEFT)
+                
+                # 修改日期按钮
+                def create_modify_command(label_widget):
+                    def modify_command():
+                        self.modify_placeholder_date(label_widget)
+                    return modify_command
+                
+                modify_button = ttk.Button(date_frame, text="选择日期", command=create_modify_command(date_label), width=8)
+                modify_button.pack(side=tk.LEFT, padx=(5, 0))
+                
+                self.input_fields[placeholder] = date_label
             else:
                 # 创建普通文本框
                 entry = ttk.Entry(self.input_scrollable_frame, width=25)
@@ -3255,7 +3278,7 @@ class DocumentProcessorUI:
         self.date_label.pack(side=tk.LEFT)
         
         # 修改日期按钮
-        ttk.Button(date_frame, text="修改", command=self.modify_date, width=5).pack(side=tk.LEFT, padx=(5, 0))
+        ttk.Button(date_frame, text="选择日期", command=self.modify_date, width=8).pack(side=tk.LEFT, padx=(5, 0))
         
         # 将日期存储在input_fields中
         self.input_fields['日期'] = today
@@ -3282,6 +3305,158 @@ class DocumentProcessorUI:
                         elif isinstance(widget, ttk.Entry):
                             widget.delete(0, tk.END)
                             widget.insert(0, value)
+                        elif isinstance(widget, ttk.Label):
+                            # 对于日期标签，更新显示文本
+                            widget.config(text=value)
+                            # 更新存储的值
+                            self.input_fields[placeholder] = value
+
+    def modify_placeholder_date(self, date_label):
+        """
+        修改占位符日期功能
+        :param date_label: 日期标签控件
+        """
+        # 创建日期修改对话框
+        date_dialog = tk.Toplevel(self.root)
+
+        # 居中显示对话框
+        self.center_dialog(date_dialog, 300, 100)
+        date_dialog.transient(self.root)
+        date_dialog.grab_set()
+
+        date_dialog.title("选择日期")
+        date_dialog.geometry("300x100")
+        date_dialog.resizable(False, False)
+        
+        # 获取当前日期值
+        current_date = date_label.cget("text")
+        
+        # 解析当前日期
+        try:
+            current_datetime = datetime.strptime(current_date, '%Y年%m月%d日')
+            current_year = current_datetime.year
+            current_month = current_datetime.month
+            current_day = current_datetime.day
+        except ValueError:
+            current_datetime = datetime.now()
+            current_year = current_datetime.year
+            current_month = current_datetime.month
+            current_day = current_datetime.day
+
+        # 创建主框架
+        main_frame = ttk.Frame(date_dialog, padding="10")
+        main_frame.pack(fill=tk.BOTH, expand=True)
+
+        # 第一行：年月日选择
+        date_selection_frame = ttk.Frame(main_frame)
+        date_selection_frame.pack(fill=tk.X, pady=(0, 10))
+        
+        # 年份选择
+        ttk.Label(date_selection_frame, text="年:").pack(side=tk.LEFT)
+        year_var = tk.StringVar(value=str(current_year))
+        years = [str(year) for year in range(datetime.now().year - 5, datetime.now().year + 6)]  # 前后5年
+        year_combobox = ttk.Combobox(date_selection_frame, textvariable=year_var, values=years, width=8, state="readonly")
+        year_combobox.pack(side=tk.LEFT, padx=(2, 5))
+        
+        # 月份选择
+        ttk.Label(date_selection_frame, text="月:").pack(side=tk.LEFT)
+        month_var = tk.StringVar(value=str(current_month))
+        months = [str(i) for i in range(1, 13)]
+        month_combobox = ttk.Combobox(date_selection_frame, textvariable=month_var, values=months, width=6, state="readonly")
+        month_combobox.pack(side=tk.LEFT, padx=(2, 5))
+
+        # 日期选择
+        ttk.Label(date_selection_frame, text="日:").pack(side=tk.LEFT)
+        day_var = tk.StringVar(value=str(current_day))
+        days = [str(i) for i in range(1, 32)]
+        day_combobox = ttk.Combobox(date_selection_frame, textvariable=day_var, values=days, width=6, state="readonly")
+        day_combobox.pack(side=tk.LEFT, padx=(2, 0))
+
+        # 第二行：按钮区域
+        button_frame = ttk.Frame(main_frame)
+        button_frame.pack(fill=tk.X)
+        
+        def use_today():
+            today = datetime.now().strftime('%Y年%m月%d日')
+            date_label.config(text=today)
+            # 更新存储的值
+            for key, widget in self.input_fields.items():
+                if widget == date_label:
+                    self.input_fields[key] = today
+                    break
+            date_dialog.destroy()
+        
+        def confirm_date():
+            try:
+                year = int(year_var.get())
+                month = int(month_var.get())
+                day = int(day_var.get())
+                
+                # 验证日期有效性
+                datetime(year, month, day)
+                
+                # 格式化为指定格式
+                new_date = f"{year}年{month:02d}月{day:02d}日"
+                
+                # 更新显示和存储
+                date_label.config(text=new_date)
+                # 更新存储的值
+                for key, widget in self.input_fields.items():
+                    if widget == date_label:
+                        self.input_fields[key] = new_date
+                        break
+                
+                date_dialog.destroy()
+            except ValueError:
+                # 显示错误信息
+                from tkinter import messagebox
+                messagebox.showerror("日期错误", "请选择有效的日期！")
+        
+        def update_days(*args):
+            """根据年份和月份更新日期选项"""
+            try:
+                year = int(year_var.get())
+                month = int(month_var.get())
+                
+                # 计算该月的天数
+                if month in [1, 3, 5, 7, 8, 10, 12]:
+                    max_day = 31
+                elif month in [4, 6, 9, 11]:
+                    max_day = 30
+                else:  # 2月
+                    # 判断是否为闰年
+                    if (year % 4 == 0 and year % 100 != 0) or (year % 400 == 0):
+                        max_day = 29
+                    else:
+                        max_day = 28
+                
+                # 更新日期选项
+                days = [str(i) for i in range(1, max_day + 1)]
+                day_combobox['values'] = days
+                
+                # 如果当前选择的日期超出了该月的最大日期，则调整为最大日期
+                current_day = int(day_var.get())
+                if current_day > max_day:
+                    day_var.set(str(max_day))
+                    
+            except (ValueError, tk.TclError):
+                # 如果输入不完整或无效，不进行更新
+                pass
+        
+        # 绑定年份和月份选择事件
+        year_var.trace('w', update_days)
+        month_var.trace('w', update_days)
+        
+        # 初始化日期选项
+        update_days()
+
+        # 按钮居中放置
+        ttk.Button(button_frame, text="今天", command=use_today).pack(side=tk.LEFT, padx=(0, 5))
+        ttk.Button(button_frame, text="确定", command=confirm_date).pack(side=tk.LEFT, padx=(0, 5))
+        ttk.Button(button_frame, text="取消", command=date_dialog.destroy).pack(side=tk.LEFT, padx=(0, 5))
+        
+        # 使按钮框架内容居中
+        button_frame.pack_configure(anchor=tk.CENTER)
     
     def modify_date(self):
         """
@@ -3441,6 +3616,9 @@ class DocumentProcessorUI:
                 user_inputs[placeholder] = widget.get()
             elif isinstance(widget, ttk.Combobox):
                 user_inputs[placeholder] = widget.get()
+            elif isinstance(widget, ttk.Label):
+                # 日期标签控件
+                user_inputs[placeholder] = widget.cget("text")
         
         # 确保日期字段存在
         if '日期' not in user_inputs:
@@ -3480,6 +3658,9 @@ class DocumentProcessorUI:
                     user_inputs[placeholder] = widget.get()
                 elif isinstance(widget, ttk.Combobox):
                     user_inputs[placeholder] = widget.get()
+                elif isinstance(widget, ttk.Label):
+                    # 日期标签控件
+                    user_inputs[placeholder] = widget.cget("text")
             
             # 确保日期字段存在
             if '日期' not in user_inputs:
