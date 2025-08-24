@@ -75,9 +75,10 @@ pip install -r requirements.txt
 以下是填单助手的界面预览图：
 
 <div style="display: flex; flex-wrap: wrap; gap: 10px;">
-  <img src="images/软件预览/数据录入.PNG" alt="主界面" style="width: 80%;">
-  <img src="images/软件预览/配置文档组合.PNG" alt="配置文档组合" style="width: 80%;">
-  <img src="images/软件预览/配置文档模板.PNG" alt="信息填写界面" style="width: 80%;">
+  <img src="images/软件预览/screen1.PNG" alt="主界面" style="width: 80%;">
+  <img src="images/软件预览/screen2.PNG" alt="配置文档组合" style="width: 80%;">
+  <img src="images/软件预览/screen3.PNG" alt="信息填写界面" style="width: 80%;">
+  <img src="images/软件预览/screen4.PNG" alt="录入框类型" style="width: 40%;">
 </div>
 
 ## 配置文件说明
@@ -90,7 +91,7 @@ pip install -r requirements.txt
 如果您觉得本项目对您有帮助，欢迎通过以下方式支持开发者：
 
 <div style="text-align: center;">
-  <img src="images/捐赠.jpg" alt="支持与赞助" style="width: 50%;">
+  <img src="images/捐赠.jpg" alt="支持与赞助" style="width: 30%;">
 </div>
 
 ## 开发者信息
