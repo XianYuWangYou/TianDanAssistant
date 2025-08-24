@@ -70,6 +70,26 @@ pip install -r requirements.txt
    - 打开文档后，将占位符复制到指定位置
    - 保存模板文档
 
+## Wiki文档同步
+
+项目包含完整的Wiki文档，可以通过以下脚本同步到Gitee Wiki：
+
+### Windows系统
+```cmd
+sync_wiki.bat
+```
+
+### Linux/Mac系统
+```bash
+chmod +x sync_wiki.sh
+./sync_wiki.sh
+```
+
+### Python脚本方式
+```bash
+python sync_wiki.py
+```
+
 ## 软件界面预览
 
 以下是填单助手的界面预览图：
