@@ -96,7 +96,7 @@ pip install -r requirements.txt
 
 ## 开发者信息
 
-开发者：咸鱼网友 (XianYuWangyou)
+开发者：咸鱼网友 (XianYuWangYou)
 
 ## 许可证
 
