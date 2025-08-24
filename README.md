@@ -1,8 +1,8 @@
 # 填单助手 (TianDanAssistant)
 
-![公众号](https://img.shields.io/badge/公众号-大融写字的地方-red)
-![吾爱破解](https://img.shields.io/badge/吾爱破解-XianYuWangYou-yellow)
-![Python](https://img.shields.io/badge/python-3.10%2B-n)
+![公众号](https://img.shields.io/badge/公众号-大融写字的地方-green)
+![吾爱破解](https://img.shields.io/badge/吾爱破解-XianYuWangYou-red)
+![Python](https://img.shields.io/badge/python-3.10%2B-yellow)
 
 填单助手是一个自动化文档处理工具，可以自动识别Word和Excel模板中的占位符，并根据用户输入的信息批量生成填写完成的文档。
 
