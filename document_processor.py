@@ -836,6 +836,7 @@ class DocumentProcessorUI:
         """
         设置用户界面
         """
+
         # 创建标签页控件
         self.notebook = ttk.Notebook(self.root)
         self.notebook.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
@@ -855,6 +856,10 @@ class DocumentProcessorUI:
         self.template_maker_frame = ttk.Frame(self.notebook)
         self.notebook.add(self.template_maker_frame, text="配置文档模板")
         
+        # 创建选项标签页
+        self.options_frame = ttk.Frame(self.notebook)
+        self.notebook.add(self.options_frame, text="选项设置")
+        
         # 创建状态栏（提前创建，确保其他组件可以使用）
         self.status_bar = ttk.Label(self.root, text="就绪", relief=tk.SUNKEN, anchor=tk.W)
         self.status_bar.pack(side=tk.BOTTOM, fill=tk.X)
@@ -862,6 +867,7 @@ class DocumentProcessorUI:
         self.setup_main_tab()
         self.setup_config_tab()
         self.setup_template_maker_tab()
+        self.setup_options_tab()
 
     def setup_template_maker_tab(self):
         """
@@ -973,6 +979,67 @@ class DocumentProcessorUI:
         # 使用说明
         instruction_frame = ttk.Frame(right_frame)
         instruction_frame.grid(row=2, column=0, sticky=(tk.W, tk.E), pady=(10, 0))
+
+    def setup_options_tab(self):
+        """
+        设置选项标签页
+        """
+        options_frame = ttk.Frame(self.options_frame, padding="20")
+        options_frame.pack(fill=tk.BOTH, expand=True)
+        
+        # 设置网格权重
+        options_frame.columnconfigure(0, weight=1)
+        options_frame.rowconfigure(0, weight=1)
+        
+        # 创建选项区域
+        options_area = ttk.LabelFrame(options_frame, text="程序选项", padding="20")
+        options_area.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        
+        # 设置选项区域的网格权重
+        options_area.columnconfigure(0, weight=1)
+        
+        # 标题
+        title_label = ttk.Label(options_area, text="填单助手 - 选项", font=("微软雅黑", 16, "bold"))
+        title_label.grid(row=0, column=0, pady=(0, 20), sticky=tk.W)
+        
+        # 检查更新区域
+        update_frame = ttk.LabelFrame(options_area, text="软件更新", padding="10")
+        update_frame.grid(row=1, column=0, sticky=(tk.W, tk.E), pady=(0, 20))
+        update_frame.columnconfigure(1, weight=1)
+        
+        # 检查更新按钮
+        update_button = ttk.Button(update_frame, text="检查更新")
+        update_button.grid(row=0, column=0, padx=(0, 10), pady=5, sticky=tk.W)
+        
+        # 添加说明文字
+        ttk.Label(update_frame, text="检查是否有新版本可用").grid(row=0, column=1, pady=5, sticky=tk.W)
+        
+        # 添加版本信息
+        version_frame = ttk.Frame(update_frame)
+        version_frame.grid(row=1, column=0, columnspan=2, pady=(10, 0), sticky=(tk.W, tk.E))
+        ttk.Label(version_frame, text="当前版本: v1.1.0").pack(anchor=tk.W)
+        
+        # 关于区域
+        about_frame = ttk.LabelFrame(options_area, text="关于", padding="10")
+        about_frame.grid(row=2, column=0, sticky=(tk.W, tk.E), pady=(0, 20))
+        about_frame.columnconfigure(0, weight=1)
+        
+        # 关于信息
+        about_text = ttk.Label(about_frame, 
+                              text="填单助手是一个自动化文档处理工具，可以自动识别Word和Excel模板中的占位符，\n"
+                                   "并根据用户输入的信息批量生成填写完成的文档。\n\n"
+                                   "作者: xianyuwangyou\n"
+                                   "来源: 吾爱破解论坛")
+        about_text.grid(row=0, column=0, pady=(0, 10), sticky=tk.W)
+        
+        # 关于按钮
+        about_button = ttk.Button(about_frame, text="关于填单助手")
+        about_button.grid(row=1, column=0, pady=5, sticky=tk.W)
+        
+        # 添加空白区域以填充空间
+        options_area.rowconfigure(3, weight=1)
+        spacer_frame = ttk.Frame(options_area)
+        spacer_frame.grid(row=3, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
 
     def ask_to_open_output_dir(self):
         """
