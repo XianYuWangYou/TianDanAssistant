@@ -2771,6 +2771,7 @@ class DocumentProcessorUI:
         # 配置各栏的网格权重
         template_frame.columnconfigure(0, weight=1)
         template_frame.rowconfigure(0, weight=1)
+        template_frame.rowconfigure(1, weight=0)  # 按钮区域不扩展
         
         input_frame.columnconfigure(0, weight=1)
         input_frame.rowconfigure(0, weight=1)
@@ -2779,9 +2780,7 @@ class DocumentProcessorUI:
         self.config_template_listbox = tk.Listbox(template_frame, height=15, selectmode=tk.EXTENDED)
         self.config_template_listbox.grid(row=0, column=0, columnspan=2, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(0, 10))
         
-        template_frame.columnconfigure(0, weight=1)
-        template_frame.columnconfigure(1, weight=1)
-        template_frame.rowconfigure(0, weight=1)
+        # 移除了重复的scheme_listbox定义，因为它在配置方案界面中不需要
         
         # 创建一个框架来容纳按钮并使其填充整行
         button_frame = ttk.Frame(template_frame)
@@ -2899,20 +2898,35 @@ class DocumentProcessorUI:
         """
         删除选中的方案
         """
-        selection = self.scheme_listbox.curselection()
-        if not selection:
-            print("警告: 请先选择一个方案")
+        # 从下拉菜单中获取选中的方案名称
+        scheme_name = self.saved_schemes_combobox.get()
+        if not scheme_name:
+            self.log_and_status("警告: 请先选择一个方案")
             return
-
-        scheme_name = self.scheme_listbox.get(selection[0])
+        
+        # 添加确认对话框
+        from tkinter import messagebox
+        result = messagebox.askyesno(
+            "确认删除", 
+            f"确定要删除方案 '{scheme_name}' 吗？此操作不可恢复。"
+        )
+        
+        # 如果用户选择"否"，则取消删除操作
+        if not result:
+            return
+        
         try:
             # 读取现有数据
+            if not os.path.exists("app_data.json"):
+                self.log_and_status("错误: 配置文件不存在")
+                return
+                
             with open("app_data.json", "r", encoding="utf-8") as f:
                 data = json.load(f)
             
             schemes = data.get("schemes", {})
             if scheme_name not in schemes:
-                print(f"错误: 方案 '{scheme_name}' 不存在")
+                self.log_and_status(f"错误: 方案 '{scheme_name}' 不存在")
                 return
             
             # 删除方案
@@ -2927,9 +2941,21 @@ class DocumentProcessorUI:
             self.load_saved_schemes()
             self.load_saved_schemes_combobox()
             
-            print(f"方案 '{scheme_name}' 已删除")
+            # 清空当前界面的内容
+            self.scheme_name_entry.delete(0, tk.END)
+            self.config_template_listbox.delete(0, tk.END)
+            self.template_files.clear()
+            
+            # 清空用户录入区域
+            for widget in self.config_input_scrollable_frame.winfo_children():
+                widget.destroy()
+                
+            # 清空下拉菜单的选择
+            self.saved_schemes_combobox.set('')
+            
+            self.log_and_status(f"成功: 方案 '{scheme_name}' 已删除")
         except Exception as e:
-            print(f"错误: 删除方案时出错: {e}")
+            self.log_and_status(f"错误: 删除方案时出错: {e}")
     
     def load_scheme(self):
         """
