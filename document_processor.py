@@ -594,9 +594,6 @@ class DocumentProcessorUI:
         self.root.title("填单助手 By:www.52pojie.cn@xianyuwangyou")
         self.root.geometry("800x650")
         self.root.resizable(False, False)
-        
-        # 设置窗口图标
-        self.set_window_icon()
        
         self.processor = DocumentProcessor()
         self.template_files = []
@@ -607,49 +604,6 @@ class DocumentProcessorUI:
         self.output_dir = self.load_last_output_dir()  # 输出目录，默认从配置加载
         
         self.setup_ui()
-    
-    def get_placeholder_config(self, placeholder):
-        """
-        获取占位符配置
-        :param placeholder: 占位符名称
-        :return: 配置字典
-        """
-        try:
-            if os.path.exists("config.json"):
-                with open("config.json", "r", encoding="utf-8") as f:
-                    config = json.load(f)
-                return config.get("placeholder_configs", {}).get(placeholder, {})
-            else:
-                return {}
-        except Exception as e:
-            print(f"加载占位符配置时出错: {e}")
-            return {}
-    
-    def save_placeholder_config(self, placeholder, config):
-        """
-        保存占位符配置
-        :param placeholder: 占位符名称
-        :param config: 配置字典
-        """
-        try:
-            # 读取现有配置
-            main_config = {}
-            if os.path.exists("config.json"):
-                with open("config.json", "r", encoding="utf-8") as f:
-                    main_config = json.load(f)
-            
-            # 确保placeholder_configs键存在
-            if "placeholder_configs" not in main_config:
-                main_config["placeholder_configs"] = {}
-            
-            # 保存当前占位符配置
-            main_config["placeholder_configs"][placeholder] = config
-            
-            # 保存配置
-            with open("config.json", "w", encoding="utf-8") as f:
-                json.dump(main_config, f, ensure_ascii=False, indent=2)
-        except Exception as e:
-            print(f"保存占位符配置时出错: {e}")
     
     def center_window(self):
         """
@@ -691,25 +645,6 @@ class DocumentProcessorUI:
         # 设置对话框位置和尺寸
         dialog.geometry(f"{width}x{height}+{x}+{y}")
     
-    def set_window_icon(self):
-        """
-        设置窗口图标，直接读取根目录下的icon.ico文件
-        """
-        try:
-            # 直接读取根目录下的icon.ico文件
-            root_dir = os.path.dirname(os.path.abspath(__file__))
-            icon_path = os.path.join(root_dir, 'icon.ico')
-            
-            # 如果图标文件存在，则设置窗口图标
-            if os.path.exists(icon_path):
-                self.root.iconbitmap(icon_path)
-            else:
-                print("未找到图标文件: icon.ico")
-        except Exception as e:
-            # 如果设置图标失败，不中断程序运行
-            print(f"设置窗口图标失败: {e}")
-            pass
-    
     def set_dialog_icon(self, dialog):
         """
         设置对话框图标，直接读取根目录下的icon.ico文件
@@ -734,10 +669,10 @@ class DocumentProcessorUI:
         :return: 上次使用的输出目录路径
         """
         try:
-            if os.path.exists("config.json"):
-                with open("config.json", "r", encoding="utf-8") as f:
-                    config = json.load(f)
-                return config.get("last_output_dir", "docs")
+            if os.path.exists("app_data.json"):
+                with open("app_data.json", "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                return data.get("config", {}).get("last_output_dir", "docs")
             else:
                 return "docs"
         except Exception as e:
@@ -750,10 +685,10 @@ class DocumentProcessorUI:
         :return: 上次使用的模板目录路径
         """
         try:
-            if os.path.exists("config.json"):
-                with open("config.json", "r", encoding="utf-8") as f:
-                    config = json.load(f)
-                return config.get("last_template_dir", "docs")
+            if os.path.exists("app_data.json"):
+                with open("app_data.json", "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                return data.get("config", {}).get("last_template_dir", "docs")
             else:
                 return "docs"
         except Exception as e:
@@ -768,16 +703,19 @@ class DocumentProcessorUI:
         try:
             # 读取现有配置
             config = {}
-            if os.path.exists("config.json"):
-                with open("config.json", "r", encoding="utf-8") as f:
-
+            if os.path.exists("app_data.json"):
+                with open("app_data.json", "r", encoding="utf-8") as f:
                     config = json.load(f)
             
+            # 确保config键存在
+            if "config" not in config:
+                config["config"] = {}
+            
             # 更新输出目录
-            config["last_output_dir"] = output_dir
+            config["config"]["last_output_dir"] = output_dir
             
             # 保存配置
-            with open("config.json", "w", encoding="utf-8") as f:
+            with open("app_data.json", "w", encoding="utf-8") as f:
                 json.dump(config, f, ensure_ascii=False, indent=2)
         except Exception as e:
             print(f"保存配置文件时出错: {e}")
@@ -790,18 +728,65 @@ class DocumentProcessorUI:
         try:
             # 读取现有配置
             config = {}
-            if os.path.exists("config.json"):
-                with open("config.json", "r", encoding="utf-8") as f:
+            if os.path.exists("app_data.json"):
+                with open("app_data.json", "r", encoding="utf-8") as f:
                     config = json.load(f)
             
+            # 确保config键存在
+            if "config" not in config:
+                config["config"] = {}
+            
             # 更新模板目录
-            config["last_template_dir"] = template_dir
+            config["config"]["last_template_dir"] = template_dir
             
             # 保存配置
-            with open("config.json", "w", encoding="utf-8") as f:
+            with open("app_data.json", "w", encoding="utf-8") as f:
                 json.dump(config, f, ensure_ascii=False, indent=2)
         except Exception as e:
             print(f"保存配置文件时出错: {e}")
+
+    def get_placeholder_config(self, placeholder):
+        """
+        获取占位符配置
+        :param placeholder: 占位符名称
+        :return: 配置字典
+        """
+        try:
+            if os.path.exists("app_data.json"):
+                with open("app_data.json", "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                return data.get("placeholder_configs", {}).get(placeholder, {})
+            else:
+                return {}
+        except Exception as e:
+            print(f"加载占位符配置时出错: {e}")
+            return {}
+    
+    def save_placeholder_config(self, placeholder, config):
+        """
+        保存占位符配置
+        :param placeholder: 占位符名称
+        :param config: 配置字典
+        """
+        try:
+            # 读取现有配置
+            main_config = {}
+            if os.path.exists("app_data.json"):
+                with open("app_data.json", "r", encoding="utf-8") as f:
+                    main_config = json.load(f)
+            
+            # 确保placeholder_configs键存在
+            if "placeholder_configs" not in main_config:
+                main_config["placeholder_configs"] = {}
+            
+            # 保存当前占位符配置
+            main_config["placeholder_configs"][placeholder] = config
+            
+            # 保存配置
+            with open("app_data.json", "w", encoding="utf-8") as f:
+                json.dump(main_config, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            print(f"保存占位符配置时出错: {e}")
 
     def load_user_inputs_for_scheme(self, scheme_name):
         """
@@ -810,10 +795,10 @@ class DocumentProcessorUI:
         :return: 用户输入字典
         """
         try:
-            if os.path.exists("config.json"):
-                with open("config.json", "r", encoding="utf-8") as f:
-                    config = json.load(f)
-                    return config.get("user_inputs", {}).get(scheme_name, {})
+            if os.path.exists("app_data.json"):
+                with open("app_data.json", "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    return data.get("user_inputs", {}).get(scheme_name, {})
             else:
                 return {}
         except Exception as e:
@@ -829,8 +814,8 @@ class DocumentProcessorUI:
         try:
             # 读取现有配置
             config = {}
-            if os.path.exists("config.json"):
-                with open("config.json", "r", encoding="utf-8") as f:
+            if os.path.exists("app_data.json"):
+                with open("app_data.json", "r", encoding="utf-8") as f:
                     config = json.load(f)
             
             # 确保user_inputs键存在
@@ -842,7 +827,7 @@ class DocumentProcessorUI:
             config["user_inputs"][scheme_name] = user_inputs
             
             # 保存配置
-            with open("config.json", "w", encoding="utf-8") as f:
+            with open("app_data.json", "w", encoding="utf-8") as f:
                 json.dump(config, f, ensure_ascii=False, indent=2)
         except Exception as e:
             print(f"保存用户输入时出错: {e}")
@@ -2425,7 +2410,7 @@ class DocumentProcessorUI:
         ttk.Button(left_frame, text="刷新方案列表", command=self.load_saved_schemes).grid(row=1, column=0, columnspan=2)
         
         # 右侧：用户录入区域
-        self.input_canvas = tk.Canvas(right_frame, height=200)
+        self.input_canvas = tk.Canvas(right_frame, height=200, relief=tk.SUNKEN, borderwidth=1)
         self.input_scrollbar = ttk.Scrollbar(right_frame, orient="vertical", command=self.input_canvas.yview)
         self.input_scrollable_frame = ttk.Frame(self.input_canvas)
         
@@ -2453,8 +2438,30 @@ class DocumentProcessorUI:
         save_button_frame = ttk.Frame(right_frame)
         save_button_frame.grid(row=1, column=0, columnspan=2, pady=(5, 0), sticky=(tk.W, tk.E))
         
-        # 添加保存按钮
-        ttk.Button(save_button_frame, text="保存录入内容", command=self.save_user_inputs).pack(pady=5)
+        # 修改为左右布局
+        # Label和Combobox作为一个整体居左放置，按钮居中放置
+        # 创建包含Label和Combobox的子框架，作为一个整体
+        history_frame = ttk.Frame(save_button_frame)
+        history_frame.grid(row=0, column=0, padx=(0, 5), pady=5, sticky=tk.W)
+        
+        ttk.Label(history_frame, text="历史记录:").pack(side=tk.LEFT)
+        self.history_combobox = ttk.Combobox(history_frame, width=20, state="disabled")
+        self.history_combobox.pack(side=tk.LEFT, padx=(5, 0))
+        # 绑定选择事件
+        self.history_combobox.bind("<<ComboboxSelected>>", self.load_history_record)
+        
+        # 添加删除历史记录按钮
+        self.delete_history_button = ttk.Button(history_frame, text="删除记录", width=8, command=self.delete_history_record, state="disabled")
+        self.delete_history_button.pack(side=tk.LEFT, padx=(5, 0))
+        
+        # 保存按钮居中放置
+        self.save_inputs_button = ttk.Button(save_button_frame, text="保存录入内容", command=self.save_user_inputs, state="disabled")
+        self.save_inputs_button.grid(row=0, column=1, pady=5)
+
+        # 配置保存按钮框架的列权重，使按钮能够居中
+        save_button_frame.columnconfigure(0, weight=1)  # 左侧组件
+        save_button_frame.columnconfigure(1, weight=0)  # 中间按钮（不拉伸）
+        save_button_frame.columnconfigure(2, weight=1)  # 右侧空白区域（用于居中按钮）
         
         right_frame.columnconfigure(0, weight=1)
         right_frame.rowconfigure(0, weight=1)
@@ -2468,10 +2475,13 @@ class DocumentProcessorUI:
         self.output_dir_label = ttk.Label(button_frame, text=f"输出目录: {self.output_dir}", width=45, anchor="w")
         self.output_dir_label.grid(row=0, column=1, padx=(0, 10))
         
-        ttk.Button(button_frame, text="生成文档", command=self.generate_documents).grid(row=0, column=2, padx=(10, 10))
+        self.generate_docs_button = ttk.Button(button_frame, text="生成文档", command=self.generate_documents, state="disabled")
+        self.generate_docs_button.grid(row=0, column=2, padx=(10, 10))
+        
         # 如果PDF功能可用，添加合并为PDF按钮（在打开输出文件夹按钮之前）
         if PDF_CONVERSION_AVAILABLE and PDF_MERGING_AVAILABLE:
-            ttk.Button(button_frame, text="合并为PDF", command=self.merge_to_pdf).grid(row=0, column=3, padx=(10, 10))
+            self.merge_pdf_button = ttk.Button(button_frame, text="合并为PDF", command=self.merge_to_pdf, state="disabled")
+            self.merge_pdf_button.grid(row=0, column=3, padx=(10, 10))
             ttk.Button(button_frame, text="打开输出文件夹", command=self.open_output_dir).grid(row=0, column=4, padx=(10, 10))
         elif not PDF_CONVERSION_AVAILABLE or not PDF_MERGING_AVAILABLE:
             ttk.Button(button_frame, text="合并为PDF(需要安装依赖)", state=tk.DISABLED).grid(row=0, column=3, padx=(10, 10))
@@ -2481,6 +2491,61 @@ class DocumentProcessorUI:
         
         # 加载已保存的方案
         self.load_saved_schemes()
+        
+        # 初始化时禁用相关控件
+        self.disable_scheme_related_controls()
+    
+    def delete_history_record(self):
+        """
+        删除选中的历史记录
+        """
+        try:
+            # 获取选中项的索引
+            selected_index = self.history_combobox.current()
+            if selected_index < 0:
+                self.log_and_status("请先选择一条历史记录")
+                return
+            
+            # 确认删除操作
+            from tkinter import messagebox
+            result = messagebox.askyesno("确认删除", "确定要删除选中的历史记录吗？此操作不可恢复。")
+            if not result:
+                return
+            
+            # 读取历史记录
+            if not os.path.exists("app_data.json"):
+                return
+            
+            with open("app_data.json", "r", encoding="utf-8") as f:
+                data = json.load(f)
+            
+            history_data = data.get("history", {})
+            
+            # 获取当前方案的历史记录
+            if self.current_scheme not in history_data:
+                return
+            
+            # 删除选中的记录
+            if selected_index < len(history_data[self.current_scheme]):
+                del history_data[self.current_scheme][selected_index]
+                
+                # 保存更新后的历史记录
+                data["history"] = history_data
+                with open("app_data.json", "w", encoding="utf-8") as f:
+                    json.dump(data, f, ensure_ascii=False, indent=2)
+                
+                # 更新下拉框内容
+                self.update_history_combobox()
+                
+                # 清空选择
+                self.history_combobox.set('')
+                
+                self.log_and_status("历史记录已删除")
+            else:
+                self.log_and_status("未找到选中的历史记录")
+                
+        except Exception as e:
+            self.log_and_status(f"删除历史记录时出错: {e}")
 
     def select_output_dir(self):
         """
@@ -2502,14 +2567,101 @@ class DocumentProcessorUI:
 
     def on_scheme_select(self, event):
         """
-        当用户选择方案时的处理函数
+        当用户选择方案时，加载该方案的占位符和历史记录
         """
         selection = self.scheme_listbox_main.curselection()
         if not selection:
             return
+
+        # 获取选中的方案名称
+        selected_scheme = self.scheme_listbox_main.get(selection[0])
+        self.current_scheme = selected_scheme
+
+        try:
+            # 读取方案数据
+            with open("app_data.json", "r", encoding="utf-8") as f:
+                data = json.load(f)
+
+            schemes = data.get("schemes", {})
+            if selected_scheme not in schemes:
+                self.log_and_status(f"错误: 方案 '{selected_scheme}' 不存在")
+                return
+
+            scheme_data = schemes[selected_scheme]
+
+            # 更新模板文件列表
+            self.template_files = scheme_data.get("template_files", [])
+
+            # 更新占位符列表
+            self.ordered_placeholders = scheme_data.get("placeholder_order", [])
+            
+            # 清除现有的输入字段
+            for widget in self.input_scrollable_frame.winfo_children():
+                widget.destroy()
+            
+            self.input_fields = {}  # 重置输入字段字典
+            
+            # 创建新的输入字段
+            self.create_input_fields()
+            
+            # 更新历史记录下拉框
+            self.update_history_combobox()
+            
+            # 启用相关按钮和控件
+            self.enable_scheme_related_controls()
+            
+            self.log_and_status(f"已加载方案: {selected_scheme}")
+            
+        except Exception as e:
+            self.log_and_status(f"加载方案时出错: {str(e)}")
+    
+    def enable_scheme_related_controls(self):
+        """
+        启用与方案相关的控件
+        """
+        # 启用历史记录下拉框
+        self.history_combobox.config(state="readonly")
         
-        scheme_name = self.scheme_listbox_main.get(selection[0])
-        self.load_scheme_for_main(scheme_name)
+        # 启用删除记录按钮
+        self.delete_history_button.config(state="normal")
+        
+        # 启用保存录入内容按钮
+        self.save_inputs_button.config(state="normal")
+        
+        # 启用生成文档和合并为PDF按钮
+        self.generate_docs_button.config(state="normal")
+        
+        if hasattr(self, 'merge_pdf_button'):
+            self.merge_pdf_button.config(state="normal")
+    
+    def disable_scheme_related_controls(self):
+        """
+        禁用与方案相关的控件
+        """
+        # 禁用历史记录下拉框
+        self.history_combobox.config(state="disabled")
+        
+        # 禁用保存录入内容按钮（需要通过父框架找到按钮）
+        for widget in self.history_combobox.master.master.winfo_children():
+            if isinstance(widget, tk.Button) and widget.cget("text") == "保存录入内容":
+                widget.config(state="disabled")
+                break
+        
+        # 禁用删除记录按钮
+        for widget in self.history_combobox.master.winfo_children():
+            if isinstance(widget, tk.Button) and widget.cget("text") == "删除记录":
+                widget.config(state="disabled")
+                break
+        
+        # 禁用生成文档按钮
+        for widget in self.history_combobox.master.master.winfo_children():
+            if isinstance(widget, tk.Frame):  # 控制按钮区域
+                for child in widget.winfo_children():
+                    if isinstance(child, tk.Button) and child.cget("text") == "生成文档":
+                        child.config(state="disabled")
+                    elif isinstance(child, tk.Button) and child.cget("text") == "合并为PDF":
+                        child.config(state="disabled")
+                break
     
     def load_scheme_for_main(self, scheme_name):
         """
@@ -2517,9 +2669,10 @@ class DocumentProcessorUI:
         """
         # 读取方案数据
         try:
-            with open("schemes.json", "r", encoding="utf-8") as f:
-                schemes = json.load(f)
+            with open("app_data.json", "r", encoding="utf-8") as f:
+                data = json.load(f)
             
+            schemes = data.get("schemes", {})
             if scheme_name not in schemes:
                 print(f"错误: 方案 '{scheme_name}' 不存在")
                 return
@@ -2552,14 +2705,29 @@ class DocumentProcessorUI:
         加载已保存的方案到列表框（保留此方法以保持向后兼容）
         """
         self.scheme_listbox_main.delete(0, tk.END)
-        if os.path.exists("schemes.json"):
+        if os.path.exists("app_data.json"):
             try:
-                with open("schemes.json", "r", encoding="utf-8") as f:
-                    schemes = json.load(f)
+                with open("app_data.json", "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                schemes = data.get("schemes", {})
                 for scheme_name in schemes:
                     self.scheme_listbox_main.insert(tk.END, scheme_name)
             except Exception as e:
                 print(f"加载方案时出错: {e}")
+    
+    def load_saved_schemes_combobox(self):
+        """
+        加载已保存方案下拉菜单
+        """
+        if os.path.exists("app_data.json"):
+            try:
+                with open("app_data.json", "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                schemes = data.get("schemes", {})
+                scheme_names = list(schemes.keys())
+                self.saved_schemes_combobox['values'] = scheme_names
+            except Exception as e:
+                print(f"加载方案下拉菜单时出错: {e}")
     
     def setup_config_tab(self):
         """
@@ -2628,10 +2796,10 @@ class DocumentProcessorUI:
         ttk.Button(button_frame, text="检测占位符", command=self.config_detect_placeholders).grid(row=0, column=2, sticky=(tk.W, tk.E), padx=2)
         
         # 右栏内容：用户录入区域
-        self.config_input_canvas = tk.Canvas(input_frame, height=200)
+        self.config_input_canvas = tk.Canvas(input_frame, height=200, relief=tk.SUNKEN, borderwidth=1)
         self.config_input_scrollbar = ttk.Scrollbar(input_frame, orient="vertical", command=self.config_input_canvas.yview)
         self.config_input_scrollable_frame = ttk.Frame(self.config_input_canvas)
-        
+
         # 添加鼠标滚轮支持
         def _on_mousewheel(event):
             self.config_input_canvas.yview_scroll(int(-1*(event.delta/120)), "units")
@@ -2660,23 +2828,6 @@ class DocumentProcessorUI:
         
         # 初始化已保存方案下拉菜单
         self.load_saved_schemes_combobox()
-        
-    def load_saved_schemes_combobox(self):
-        """
-        加载已保存方案下拉菜单
-        """
-        if os.path.exists("schemes.json"):
-            try:
-                with open("schemes.json", "r", encoding="utf-8") as f:
-                    schemes = json.load(f)
-                scheme_names = list(schemes.keys())
-                self.saved_schemes_combobox['values'] = scheme_names
-                # 不再自动选择第一个方案，保持下拉菜单默认为空
-                # if scheme_names:
-                #     self.saved_schemes_combobox.current(0)
-                #     self.on_config_scheme_selected(None)  # 触发默认加载第一个方案
-            except Exception as e:
-                print(f"加载方案下拉菜单时出错: {e}")
     
     def update_config_input_area(self):
         """
@@ -2704,39 +2855,40 @@ class DocumentProcessorUI:
     
     def save_scheme(self):
         """
-        保存当前方案
+        保存当前配置的方案
         """
         scheme_name = self.scheme_name_entry.get().strip()
         if not scheme_name:
-            self.log_and_status("警告: 请输入方案名称")
+            self.log_and_status("错误: 请输入方案名称")
             return
         
-        # 创建方案数据
-        scheme_data = {
-            "template_files": self.template_files,
-            "placeholder_order": self.ordered_placeholders
-        }
+        if not self.template_files:
+            self.log_and_status("错误: 请至少选择一个模板文件")
+            return
         
-        # 读取现有方案
-        schemes = {}
-        if os.path.exists("schemes.json"):
-            try:
-                with open("schemes.json", "r", encoding="utf-8") as f:
-                    schemes = json.load(f)
-            except Exception as e:
-                print(f"读取方案文件时出错: {e}")
-        
-        # 添加或更新方案
-        schemes[scheme_name] = scheme_data
-        
-        # 保存方案
         try:
-            with open("schemes.json", "w", encoding="utf-8") as f:
-                json.dump(schemes, f, ensure_ascii=False, indent=2)
+            # 读取现有数据
+            data = {}
+            if os.path.exists("app_data.json"):
+                with open("app_data.json", "r", encoding="utf-8") as f:
+                    data = json.load(f)
             
-            # 更新方案下拉菜单
+            # 确保schemes键存在
+            if "schemes" not in data:
+                data["schemes"] = {}
+            
+            # 保存方案
+            data["schemes"][scheme_name] = {
+                "template_files": self.template_files.copy(),
+                "placeholder_order": self.ordered_placeholders.copy()
+            }
+            
+            # 写入文件
+            with open("app_data.json", "w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+            
+            # 更新下拉菜单
             self.load_saved_schemes_combobox()
-            # 同时更新主界面方案列表
             self.load_saved_schemes()
             
             self.log_and_status(f"成功: 方案 '{scheme_name}' 已保存")
@@ -2754,22 +2906,28 @@ class DocumentProcessorUI:
 
         scheme_name = self.scheme_listbox.get(selection[0])
         try:
-            # 读取方案数据
-            with open("schemes.json", "r", encoding="utf-8") as f:
-                schemes = json.load(f)
+            # 读取现有数据
+            with open("app_data.json", "r", encoding="utf-8") as f:
+                data = json.load(f)
             
+            schemes = data.get("schemes", {})
             if scheme_name not in schemes:
                 print(f"错误: 方案 '{scheme_name}' 不存在")
                 return
             
+            # 删除方案
             del schemes[scheme_name]
+            data["schemes"] = schemes
             
-            # 保存更新后的方案数据
-            with open("schemes.json", "w", encoding="utf-8") as f:
-                json.dump(schemes, f, indent=4)
+            # 保存更改
+            with open("app_data.json", "w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
             
-            self.load_saved_schemes_main()
-            print(f"成功: 方案 '{scheme_name}' 已删除")
+            # 更新列表框
+            self.load_saved_schemes()
+            self.load_saved_schemes_combobox()
+            
+            print(f"方案 '{scheme_name}' 已删除")
         except Exception as e:
             print(f"错误: 删除方案时出错: {e}")
     
@@ -2785,9 +2943,10 @@ class DocumentProcessorUI:
         selected_scheme = self.scheme_listbox.get(selection[0])
         try:
             # 读取方案数据
-            with open("schemes.json", "r", encoding="utf-8") as f:
-                schemes = json.load(f)
+            with open("app_data.json", "r", encoding="utf-8") as f:
+                data = json.load(f)
             
+            schemes = data.get("schemes", {})
             if selected_scheme not in schemes:
                 print(f"错误: 方案 '{selected_scheme}' 不存在")
                 return
@@ -2807,18 +2966,19 @@ class DocumentProcessorUI:
             if hasattr(self, 'placeholder_listbox'):
                 self.placeholder_listbox.delete(0, tk.END)
                 for placeholder in self.ordered_placeholders:
-                    self.placeholder_listbox.insert(tk.END, placeholder)
+                    if placeholder != '日期':  # 不显示日期占位符
+                        self.placeholder_listbox.insert(tk.END, placeholder)
             
             # 更新方案名称
             self.scheme_name_entry.delete(0, tk.END)
             self.scheme_name_entry.insert(0, selected_scheme)
             
-            # 创建输入字段（配置方案界面）
+            # 创建用户输入控件
             self.config_create_input_fields()
             
-            print(f"成功: 方案 '{selected_scheme}' 已加载到配置界面")
+            print(f"成功加载方案: {selected_scheme}")
         except Exception as e:
-            print(f"错误: 加载方案时出错: {e}")
+            print(f"加载方案时出错: {e}")
     
     def on_config_scheme_select(self, event):
         """
@@ -2830,62 +2990,6 @@ class DocumentProcessorUI:
         
         # 自动加载选中的方案
         self.load_scheme()
-    
-    def delete_scheme(self):
-        """
-        删除选中的方案
-        """
-        # 从下拉菜单中获取选中的方案名称
-        scheme_name = self.saved_schemes_combobox.get()
-        if not scheme_name:
-            self.log_and_status("警告: 请先选择一个方案")
-            return
-        
-        # 添加确认对话框
-        from tkinter import messagebox
-        result = messagebox.askyesno(
-            "确认删除", 
-            f"确定要删除方案 '{scheme_name}' 吗？此操作不可恢复。"
-        )
-        
-        # 如果用户选择"否"，则取消删除操作
-        if not result:
-            return
-        
-        try:
-            # 读取方案数据
-            with open("schemes.json", "r", encoding="utf-8") as f:
-                schemes = json.load(f)
-            
-            if scheme_name not in schemes:
-                self.log_and_status(f"错误: 方案 '{scheme_name}' 不存在")
-                return
-            
-            del schemes[scheme_name]
-            
-            # 保存更新后的方案数据
-            with open("schemes.json", "w", encoding="utf-8") as f:
-                json.dump(schemes, f, indent=4)
-            
-            # 刷新所有相关的界面
-            self.load_saved_schemes_combobox()  # 刷新配置方案界面的方案下拉菜单
-            self.load_saved_schemes()  # 刷新主操作界面的方案列表
-            
-            # 清空当前界面的内容
-            self.scheme_name_entry.delete(0, tk.END)
-            self.config_template_listbox.delete(0, tk.END)
-            self.template_files.clear()
-            
-            # 清空用户录入区域
-            for widget in self.config_input_scrollable_frame.winfo_children():
-                widget.destroy()
-                
-            # 清空下拉菜单的选择
-            self.saved_schemes_combobox.set('')
-            
-            self.log_and_status(f"成功: 方案 '{scheme_name}' 已删除")
-        except Exception as e:
-            self.log_and_status(f"错误: 删除方案时出错: {e}")
     
     def on_config_scheme_selected(self, event):
         """
@@ -2901,10 +3005,11 @@ class DocumentProcessorUI:
         :param scheme_name: 方案名称
         """
         try:
-            if os.path.exists("schemes.json"):
-                with open("schemes.json", "r", encoding="utf-8") as f:
-                    schemes = json.load(f)
+            if os.path.exists("app_data.json"):
+                with open("app_data.json", "r", encoding="utf-8") as f:
+                    data = json.load(f)
                 
+                schemes = data.get("schemes", {})
                 if scheme_name in schemes:
                     scheme_data = schemes[scheme_name]
                     
@@ -3231,9 +3336,9 @@ class DocumentProcessorUI:
             
             # 根据配置创建不同类型的输入控件
             if config.get("type") == "combobox":
-                # 创建下拉框
+                # 创建下拉框，宽度增加到原来的1.5倍 (25 -> 37)
                 options = config.get("options", [])
-                combobox = ttk.Combobox(self.input_scrollable_frame, values=options, width=25, state="readonly")
+                combobox = ttk.Combobox(self.input_scrollable_frame, values=options, width=37, state="readonly")
                 combobox.grid(row=i, column=1, sticky=(tk.W, tk.E), pady=2, padx=(5, 0))
                 self.input_fields[placeholder] = combobox
             elif config.get("type") == "date":
@@ -3257,8 +3362,8 @@ class DocumentProcessorUI:
                 
                 self.input_fields[placeholder] = date_label
             else:
-                # 创建普通文本框
-                entry = ttk.Entry(self.input_scrollable_frame, width=25)
+                # 创建普通文本框，宽度增加到原来的1.5倍 (25 -> 37)
+                entry = ttk.Entry(self.input_scrollable_frame, width=37)
                 entry.grid(row=i, column=1, sticky=(tk.W, tk.E), pady=2, padx=(5, 0))
                 self.input_fields[placeholder] = entry
             
@@ -3286,31 +3391,6 @@ class DocumentProcessorUI:
         # 配置输入区域的列权重
         self.input_scrollable_frame.columnconfigure(1, weight=1)
         
-        # 加载该方案的上次用户输入
-        if self.current_scheme:
-            last_inputs = self.load_user_inputs_for_scheme(self.current_scheme)
-            if last_inputs:
-                # 填充上次的用户输入
-                for placeholder, value in last_inputs.items():
-                    if placeholder in self.input_fields:
-                        widget = self.input_fields[placeholder]
-                        if isinstance(widget, ttk.Combobox):
-                            # 对于下拉框，设置值（如果该值在选项中）
-                            if value in widget['values']:
-                                widget.set(value)
-                            # 如果值不在选项中但不为空，则添加到选项中（防止数据丢失）
-                            elif value:
-                                widget['values'] = list(widget['values']) + [value]
-                                widget.set(value)
-                        elif isinstance(widget, ttk.Entry):
-                            widget.delete(0, tk.END)
-                            widget.insert(0, value)
-                        elif isinstance(widget, ttk.Label):
-                            # 对于日期标签，更新显示文本
-                            widget.config(text=value)
-                            # 不替换self.input_fields中的控件引用
-                            # 而是在modify_placeholder_date方法中维护一个单独的映射来跟踪值的变化
-
     def modify_placeholder_date(self, date_label):
         """
         修改占位符日期功能
@@ -3630,10 +3710,163 @@ class DocumentProcessorUI:
             today = datetime.now().strftime('%Y年%m月%d日')
             user_inputs['日期'] = today
         
+        # 保存当前用户输入到历史记录
+        self.save_to_history(user_inputs)
+        
         # 保存当前用户输入
         if self.current_scheme:
             self.save_user_inputs_for_scheme(self.current_scheme, user_inputs)
             self.log_and_status(f"成功: 已保存'{self.current_scheme}'方案的用户录入内容")
+    
+    def save_to_history(self, user_inputs):
+        """
+        保存用户输入到历史记录
+        :param user_inputs: 用户输入字典
+        """
+        try:
+            # 读取现有历史记录
+            history_data = {}
+            
+            if os.path.exists("app_data.json"):
+                with open("app_data.json", "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    history_data = data.get("history", {})
+            
+            # 确保当前方案在历史记录中存在
+            if self.current_scheme not in history_data:
+                history_data[self.current_scheme] = []
+            
+            # 添加时间戳到记录中
+            record = user_inputs.copy()
+            record["__timestamp__"] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            
+            # 检查是否与最近的一条记录完全相同（除了时间戳）
+            should_save = True
+            if history_data[self.current_scheme]:
+                latest_record = history_data[self.current_scheme][0].copy()
+                # 移除时间戳字段进行比较
+                latest_record.pop("__timestamp__", None)
+                current_record = record.copy()
+                current_record.pop("__timestamp__", None)
+                
+                # 如果内容完全相同，则不保存
+                if latest_record == current_record:
+                    should_save = False
+            
+            if should_save:
+                # 将新记录添加到开头
+                history_data[self.current_scheme].insert(0, record)
+                
+                # 限制最多保存10条记录
+                if len(history_data[self.current_scheme]) > 20:
+                    history_data[self.current_scheme] = history_data[self.current_scheme][:20]
+                
+                # 读取所有数据并更新历史记录部分
+                if os.path.exists("app_data.json"):
+                    with open("app_data.json", "r", encoding="utf-8") as f:
+                        all_data = json.load(f)
+                else:
+                    all_data = {}
+                    
+                all_data["history"] = history_data
+                
+                # 保存历史记录
+                with open("app_data.json", "w", encoding="utf-8") as f:
+                    json.dump(all_data, f, ensure_ascii=False, indent=2)
+                
+                # 更新下拉框内容
+                self.update_history_combobox()
+            
+        except Exception as e:
+            print(f"保存历史记录时出错: {e}")
+    
+    def update_history_combobox(self):
+        """
+        更新历史记录下拉框内容
+        """
+        try:
+            if not os.path.exists("app_data.json"):
+                self.history_combobox['values'] = []
+                return
+            
+            with open("app_data.json", "r", encoding="utf-8") as f:
+                data = json.load(f)
+            
+            history_data = data.get("history", {})
+            
+            # 获取当前方案的历史记录
+            if self.current_scheme in history_data:
+                # 创建显示文本列表
+                history_texts = []
+                for record in history_data[self.current_scheme]:
+                    # 使用第一个非空的录入内容作为标识
+                    display_info = "未命名记录"
+                    # 遍历录入字段，找到第一个非空的内容
+                    for key in record:
+                        # 跳过时间戳和日期字段
+                        if key not in ["__timestamp__", "日期"] and record[key]:
+                            display_info = record[key]
+                            break
+                    history_texts.append(display_info)
+                
+                self.history_combobox['values'] = history_texts
+            else:
+                self.history_combobox['values'] = []
+                
+        except Exception as e:
+            print(f"更新历史记录下拉框时出错: {e}")
+    
+    def load_history_record(self, event=None):
+        """
+        加载选中的历史记录到输入框
+        :param event: 事件对象
+        """
+        try:
+            # 获取选中项的索引
+            selected_index = self.history_combobox.current()
+            if selected_index < 0:
+                return
+            
+            # 读取历史记录
+            if not os.path.exists("app_data.json"):
+                return
+            
+            with open("app_data.json", "r", encoding="utf-8") as f:
+                data = json.load(f)
+            
+            history_data = data.get("history", {})
+            
+            # 获取当前方案的历史记录
+            if self.current_scheme not in history_data:
+                return
+            
+            # 获取选中的记录
+            if selected_index >= len(history_data[self.current_scheme]):
+                return
+            
+            record = history_data[self.current_scheme][selected_index]
+            
+            # 填充到输入框
+            for placeholder, value in record.items():
+                # 跳过时间戳字段
+                if placeholder == "__timestamp__":
+                    continue
+                
+                # 查找对应的输入控件
+                if placeholder in self.input_fields:
+                    widget = self.input_fields[placeholder]
+                    if isinstance(widget, ttk.Entry):
+                        widget.delete(0, tk.END)
+                        widget.insert(0, value)
+                    elif isinstance(widget, ttk.Combobox):
+                        widget.set(value)
+                    elif isinstance(widget, ttk.Label):  # 日期标签
+                        widget.config(text=value)
+            
+            self.log_and_status("已加载历史记录")
+            
+        except Exception as e:
+            self.log_and_status(f"加载历史记录时出错: {e}")
     
     def generate_documents(self):
         """
