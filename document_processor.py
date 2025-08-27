@@ -623,24 +623,39 @@ class DocumentProcessorUI:
         
         # 设置窗口位置和尺寸
         self.root.geometry(f"{width}x{height}+{x}+{y}")
-
-        # 设置窗口位置和尺寸
-        self.root.geometry(f"{width}x{height}+{x}+{y}")
     
     def center_dialog(self, dialog, width, height):
         """
-        将对话框居中显示在屏幕中央
+        将对话框居中显示在主窗口中央
         :param dialog: 对话框窗口
         :param width: 对话框宽度
         :param height: 对话框高度
         """
-        # 获取屏幕尺寸
-        screen_width = dialog.winfo_screenwidth()
-        screen_height = dialog.winfo_screenheight()
+        # 获取主窗口位置和尺寸
+        main_x = self.root.winfo_x()
+        main_y = self.root.winfo_y()
+        main_width = self.root.winfo_width()
+        main_height = self.root.winfo_height()
         
-        # 计算居中位置
-        x = (screen_width - width) // 2
-        y = (screen_height - height) // 2
+        # 计算居中位置（相对于主窗口）
+        x = main_x + (main_width - width) // 2
+        y = main_y + (main_height - height) // 2
+        
+        # 确保对话框不会显示在屏幕外
+        screen_width = self.root.winfo_screenwidth()
+        screen_height = self.root.winfo_screenheight()
+        
+        # 调整x坐标，确保对话框在屏幕内
+        if x < 0:
+            x = 0
+        elif x + width > screen_width:
+            x = screen_width - width
+            
+        # 调整y坐标，确保对话框在屏幕内
+        if y < 0:
+            y = 0
+        elif y + height > screen_height:
+            y = screen_height - height
         
         # 设置对话框位置和尺寸
         dialog.geometry(f"{width}x{height}+{x}+{y}")
@@ -991,25 +1006,41 @@ class DocumentProcessorUI:
         options_frame.columnconfigure(0, weight=1)
         options_frame.rowconfigure(0, weight=1)
         
-        # 创建选项区域
-        options_area = ttk.LabelFrame(options_frame, text="程序选项", padding="20")
-        options_area.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
-        
         # 设置选项区域的网格权重
-        options_area.columnconfigure(0, weight=1)
+        options_frame.columnconfigure(0, weight=1)
         
-        # 标题
-        title_label = ttk.Label(options_area, text="填单助手 - 选项", font=("微软雅黑", 16, "bold"))
-        title_label.grid(row=0, column=0, pady=(0, 20), sticky=tk.W)
+        # 设置区域
+        settings_frame = ttk.LabelFrame(options_frame, text="设置", padding="10")
+        settings_frame.grid(row=1, column=0, sticky=(tk.W, tk.E), pady=(0, 20))
+        settings_frame.columnconfigure(1, weight=1)
+        
+        # PDF转换线程数设置
+        ttk.Label(settings_frame, text="PDF转换线程数:").grid(row=0, column=0, sticky=tk.W, pady=5)
+        self.pdf_threads_var = tk.StringVar(value=self.load_pdf_threads_setting())
+        pdf_threads_spinbox = ttk.Spinbox(
+            settings_frame, 
+            from_=1, 
+            to=5, 
+            textvariable=self.pdf_threads_var,
+            width=5,
+            command=self.save_pdf_threads_setting
+        )
+        pdf_threads_spinbox.grid(row=0, column=1, sticky=tk.W, padx=(10, 0), pady=5)
+        
+        # 保存按钮
+        save_button = ttk.Button(settings_frame, text="保存设置", command=self.save_pdf_threads_setting)
+        save_button.grid(row=1, column=0, sticky=tk.W, padx=(0, 10), pady=5)
+                
+        self.pdf_threads_var.trace('w', lambda *args: self.save_pdf_threads_setting())
         
         # 检查更新区域
-        update_frame = ttk.LabelFrame(options_area, text="软件更新", padding="10")
-        update_frame.grid(row=1, column=0, sticky=(tk.W, tk.E), pady=(0, 20))
+        update_frame = ttk.LabelFrame(options_frame, text="软件更新", padding="10")
+        update_frame.grid(row=2, column=0, sticky=(tk.W, tk.E), pady=(0, 20))
         update_frame.columnconfigure(1, weight=1)
         
         # 检查更新按钮
-        update_button = ttk.Button(update_frame, text="检查更新")
-        update_button.grid(row=0, column=0, padx=(0, 10), pady=5, sticky=tk.W)
+        self.update_button = ttk.Button(update_frame, text="检查更新")
+        self.update_button.grid(row=0, column=0, padx=(0, 10), pady=5, sticky=tk.W)
         
         # 添加说明文字
         ttk.Label(update_frame, text="检查是否有新版本可用").grid(row=0, column=1, pady=5, sticky=tk.W)
@@ -1020,26 +1051,114 @@ class DocumentProcessorUI:
         ttk.Label(version_frame, text="当前版本: v1.1.0").pack(anchor=tk.W)
         
         # 关于区域
-        about_frame = ttk.LabelFrame(options_area, text="关于", padding="10")
-        about_frame.grid(row=2, column=0, sticky=(tk.W, tk.E), pady=(0, 20))
+        about_frame = ttk.LabelFrame(options_frame, text="关于", padding="10")
+        about_frame.grid(row=3, column=0, sticky=(tk.W, tk.E), pady=(0, 20))
         about_frame.columnconfigure(0, weight=1)
         
         # 关于信息
         about_text = ttk.Label(about_frame, 
-                              text="填单助手是一个自动化文档处理工具，可以自动识别Word和Excel模板中的占位符，\n"
-                                   "并根据用户输入的信息批量生成填写完成的文档。\n\n"
-                                   "作者: xianyuwangyou\n"
-                                   "来源: 吾爱破解论坛")
+                              text="填单助手是一个自动化的填单工具，"
+                                   "通过替换Word和Excel模板中的占位符，"
+                                   "批量生成文档。\n\n"
+                                   "作者: 咸鱼网友\nBy:XianYuWangYou")
         about_text.grid(row=0, column=0, pady=(0, 10), sticky=tk.W)
         
-        # 关于按钮
-        about_button = ttk.Button(about_frame, text="关于填单助手")
-        about_button.grid(row=1, column=0, pady=5, sticky=tk.W)
+        # 论坛链接
+        link_frame = ttk.Label(about_frame)
+        link_frame.grid(row=1, column=0, sticky=tk.W, padx=(0, 0))
+
+        link_title = ttk.Label(link_frame, text="吾爱破解论坛:")
+        link_title.pack(side=tk.LEFT)
         
+        forum_link = ttk.Label(link_frame, text="https://www.52pojie.cn/thread-2053988-1-1.html", foreground="blue", cursor="hand2")
+        forum_link.pack(side=tk.LEFT, padx=(5, 0))
+        forum_link.bind("<Button-1>", lambda e: self.open_forum_link())
+
+        # Gitee链接
+        link_frame = ttk.Label(about_frame)
+        link_frame.grid(row=2, column=0, sticky=tk.W, padx=(0, 0))
+
+        link_title = ttk.Label(link_frame, text="Gitee项目:")
+        link_title.pack(side=tk.LEFT)
+        
+        forum_link = ttk.Label(link_frame, text="https://gitee.com/xianyuwangyou/TianDanAssistant", foreground="blue", cursor="hand2")
+        forum_link.pack(side=tk.LEFT, padx=(5, 0))
+        forum_link.bind("<Button-1>", lambda e: self.open_forum_link())
+
+        # Github链接
+        link_frame = ttk.Label(about_frame)
+        link_frame.grid(row=3, column=0, sticky=tk.W, padx=(0, 0))
+
+        link_title = ttk.Label(link_frame, text="Github项目:")
+        link_title.pack(side=tk.LEFT)
+        
+        forum_link = ttk.Label(link_frame, text="https://github.com/XianYuWangYou/TianDanAssistant", foreground="blue", cursor="hand2")
+        forum_link.pack(side=tk.LEFT, padx=(5, 0))
+        forum_link.bind("<Button-1>", lambda e: self.open_forum_link())
+
         # 添加空白区域以填充空间
-        options_area.rowconfigure(3, weight=1)
-        spacer_frame = ttk.Frame(options_area)
-        spacer_frame.grid(row=3, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        options_frame.rowconfigure(4, weight=1)
+        spacer_frame = ttk.Frame(options_frame)
+        spacer_frame.grid(row=4, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+    
+    def open_forum_link(self):
+        """
+        打开吾爱破解论坛链接
+        """
+        import webbrowser
+        webbrowser.open("https://www.52pojie.cn/")
+    
+    def load_pdf_threads_setting(self):
+        """
+        加载PDF转换线程数设置
+        """
+        try:
+            if os.path.exists("app_data.json"):
+                with open("app_data.json", "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                return str(data.get("settings", {}).get("pdf_threads", 1))
+            else:
+                return "1"
+        except Exception as e:
+            print(f"加载PDF线程设置时出错: {e}")
+            return "1"
+    
+    def save_pdf_threads_setting(self, *args):
+        """
+        保存PDF转换线程数设置
+        """
+        try:
+            # 获取当前设置值
+            try:
+                threads_value = int(self.pdf_threads_var.get())
+                # 确保值在有效范围内
+                threads_value = max(1, min(5, threads_value))
+                # 更新变量值（以防输入了范围外的值）
+                self.pdf_threads_var.set(str(threads_value))
+            except ValueError:
+                # 如果转换失败，使用默认值
+                threads_value = 1
+                self.pdf_threads_var.set("1")
+            
+            # 读取现有配置
+            config = {}
+            if os.path.exists("app_data.json"):
+                with open("app_data.json", "r", encoding="utf-8") as f:
+                    config = json.load(f)
+            
+            # 确保settings键存在
+            if "settings" not in config:
+                config["settings"] = {}
+            
+            # 更新PDF线程数设置
+            config["settings"]["pdf_threads"] = threads_value
+            
+            # 保存配置
+            with open("app_data.json", "w", encoding="utf-8") as f:
+                json.dump(config, f, ensure_ascii=False, indent=2)
+                
+        except Exception as e:
+            print(f"保存PDF线程设置时出错: {e}")
 
     def ask_to_open_output_dir(self):
         """

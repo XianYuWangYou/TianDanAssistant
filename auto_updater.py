@@ -58,16 +58,18 @@ class AutoUpdater:
             latest_version: 最新版本号
             release_info: 最新版本信息
         """
-        release_info = self.get_latest_release()
-        if not release_info:
-            return False, None, None
+        # 开发测试阶段禁用自动更新检查，防止服务器封禁
+        # release_info = self.get_latest_release()
+        # if not release_info:
+        #     return False, None, None
 
-        latest_version = release_info.get("tag_name", "")
+        # latest_version = release_info.get("tag_name", "")
         
-        # 简单的版本比较（实际项目中可能需要更复杂的版本比较逻辑）
-        has_update = latest_version > self.current_version
+        # # 简单的版本比较（实际项目中可能需要更复杂的版本比较逻辑）
+        # has_update = latest_version > self.current_version
         
-        return has_update, latest_version, release_info
+        # return has_update, latest_version, release_info
+        return False, None, None
 
     def download_latest_version(self, download_dir: str = "download") -> bool:
         """
@@ -215,6 +217,7 @@ class AutoUpdater:
         # 关闭按钮
         close_btn = ttk.Button(button_frame, text="下次再说", command=close_dialog, width=10)
         close_btn.pack(side="left", padx=10)
+        
     def _download_update_in_background(self):
         """
         在后台下载更新
@@ -376,6 +379,176 @@ class AutoUpdater:
                 progress_bar.config(value=value, maximum=max_value)
             dialog.update_idletasks()
 
+
+class AutoUpdaterUI:
+    """
+    自动更新程序的用户界面
+    """
+    
+    def __init__(self, root):
+        self.root = root
+        self.root.title("填单助手 - 自动更新程序")
+        self.root.geometry("500x400")
+        self.root.resizable(False, False)
+        
+        # 创建界面
+        self.create_widgets()
+        
+        # 初始化更新器
+        self.updater = AutoUpdater()
+        
+        # 检查更新（开发测试阶段禁用自动检查）
+        # self.check_updates()
+        self.status_label.config(text="自动更新检查已禁用（开发测试阶段）")
+        self.latest_version_value.config(text="N/A")
+        self.release_notes_text.config(state="normal")
+        self.release_notes_text.delete(1.0, tk.END)
+        self.release_notes_text.insert(1.0, "自动更新功能在开发测试阶段已被禁用，以防止服务器封禁。")
+        self.release_notes_text.config(state="disabled")
+    
+    def create_widgets(self):
+        """
+        创建界面控件
+        """
+        # 主框架
+        main_frame = ttk.Frame(self.root, padding="20")
+        main_frame.pack(fill=tk.BOTH, expand=True)
+        
+        # 标题
+        title_label = ttk.Label(main_frame, text="填单助手自动更新程序", font=("微软雅黑", 16, "bold"))
+        title_label.pack(pady=(0, 20))
+        
+        # 当前版本信息
+        version_frame = ttk.Frame(main_frame)
+        version_frame.pack(fill=tk.X, pady=(0, 20))
+        
+        ttk.Label(version_frame, text="当前版本:", font=("微软雅黑", 10)).pack(side=tk.LEFT)
+        self.current_version_label = ttk.Label(version_frame, text=CURRENT_VERSION, font=("微软雅黑", 10, "bold"))
+        self.current_version_label.pack(side=tk.LEFT, padx=(5, 0))
+        
+        # 状态信息
+        self.status_label = ttk.Label(main_frame, text="正在检查更新...", font=("微软雅黑", 10))
+        self.status_label.pack(pady=(0, 20))
+        
+        # 更新信息框架
+        info_frame = ttk.LabelFrame(main_frame, text="更新信息", padding="10")
+        info_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 20))
+        
+        # 最新版本
+        latest_version_frame = ttk.Frame(info_frame)
+        latest_version_frame.pack(fill=tk.X, pady=(0, 10))
+        
+        ttk.Label(latest_version_frame, text="最新版本:", width=10, anchor="w").pack(side=tk.LEFT)
+        self.latest_version_value = ttk.Label(latest_version_frame, text="检查中...", font=("微软雅黑", 10, "bold"))
+        self.latest_version_value.pack(side=tk.LEFT, padx=(5, 0))
+        
+        # 更新说明
+        ttk.Label(info_frame, text="更新说明:", anchor="w").pack(fill=tk.X, pady=(10, 5))
+        
+        # 创建文本框显示更新说明
+        text_frame = ttk.Frame(info_frame)
+        text_frame.pack(fill=tk.BOTH, expand=True)
+        
+        self.release_notes_text = tk.Text(text_frame, wrap="word", height=10, state="disabled")
+        scrollbar = ttk.Scrollbar(text_frame, orient="vertical", command=self.release_notes_text.yview)
+        self.release_notes_text.configure(yscrollcommand=scrollbar.set)
+        
+        self.release_notes_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        # 按钮框架
+        button_frame = ttk.Frame(main_frame)
+        button_frame.pack(fill=tk.X)
+        
+        # 检查更新按钮
+        self.check_update_btn = ttk.Button(button_frame, text="检查更新", command=self.check_updates)
+        self.check_update_btn.pack(side=tk.LEFT, padx=(0, 10))
+        
+        # 下载按钮（初始禁用）
+        self.download_btn = ttk.Button(button_frame, text="下载更新", command=self.download_update, state="disabled")
+        self.download_btn.pack(side=tk.LEFT, padx=(0, 10))
+        
+        # 退出按钮
+        ttk.Button(button_frame, text="退出", command=self.root.destroy).pack(side=tk.RIGHT)
+    
+    def check_updates(self):
+        """
+        检查更新
+        """
+        self.status_label.config(text="正在检查更新...")
+        self.root.update()
+        
+        # 在新线程中执行检查更新操作
+        import threading
+        check_thread = threading.Thread(target=self._check_updates_background)
+        check_thread.daemon = True
+        check_thread.start()
+    
+    def _check_updates_background(self):
+        """
+        在后台线程中检查更新
+        """
+        try:
+            has_update, latest_version, release_info = self.updater.check_for_updates()
+            
+            # 在主线程中更新UI
+            self.root.after(0, self._update_check_result, has_update, latest_version, release_info)
+        except Exception as e:
+            self.root.after(0, self._update_check_error, str(e))
+    
+    def _update_check_result(self, has_update, latest_version, release_info):
+        """
+        更新检查结果显示
+        """
+        if not latest_version:
+            self.status_label.config(text="检查更新失败，请检查网络连接")
+            self.latest_version_value.config(text="未知")
+            self.download_btn.config(state="disabled")
+            return
+        
+        self.latest_version_value.config(text=latest_version)
+        
+        if has_update:
+            self.status_label.config(text="发现新版本，建议立即更新！", foreground="red")
+            release_notes = release_info.get("body", "暂无更新说明") if release_info else "暂无更新说明"
+            
+            # 更新说明文本框
+            self.release_notes_text.config(state="normal")
+            self.release_notes_text.delete(1.0, tk.END)
+            self.release_notes_text.insert(1.0, release_notes)
+            self.release_notes_text.config(state="disabled")
+            
+            # 启用下载按钮
+            self.download_btn.config(state="normal")
+        else:
+            self.status_label.config(text="当前已是最新版本", foreground="green")
+            self.release_notes_text.config(state="normal")
+            self.release_notes_text.delete(1.0, tk.END)
+            self.release_notes_text.insert(1.0, "当前版本已是最新，无需更新。")
+            self.release_notes_text.config(state="disabled")
+            
+            # 禁用下载按钮
+            self.download_btn.config(state="disabled")
+    
+    def _update_check_error(self, error_msg):
+        """
+        更新检查错误处理
+        """
+        self.status_label.config(text=f"检查更新时出错: {error_msg}", foreground="red")
+        self.latest_version_value.config(text="检查失败")
+        self.download_btn.config(state="disabled")
+    
+    def download_update(self):
+        """
+        下载更新
+        """
+        # 在新线程中执行下载操作
+        import threading
+        download_thread = threading.Thread(target=self.updater._download_update_in_background)
+        download_thread.daemon = True
+        download_thread.start()
+
+
 def check_updates_background(parent: tk.Tk) -> None:
     """
     在后台检查更新并在有更新时通知用户
@@ -395,16 +568,10 @@ def main():
     """
     主函数 - 用于测试自动更新功能
     """
-    updater = AutoUpdater()
-    has_update, latest_version, release_info = updater.check_for_updates()
-
-    if has_update:
-        print(f"发现新版本: {latest_version}")
-        print(f"当前版本: {updater.current_version}")
-        release_notes = release_info.get("body", "暂无更新说明") if release_info else "暂无更新说明"
-        print(f"更新说明:\n{release_notes}")
-    else:
-        print("当前已是最新版本")
+    # 创建主窗口
+    root = tk.Tk()
+    app = AutoUpdaterUI(root)
+    root.mainloop()
 
 
 if __name__ == "__main__":

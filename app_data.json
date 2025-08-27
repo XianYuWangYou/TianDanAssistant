@@ -55,5 +55,8 @@
   "history": {
     "测试": [],
     "sadfasd": []
+  },
+  "settings": {
+    "pdf_threads": 1
   }
 }
