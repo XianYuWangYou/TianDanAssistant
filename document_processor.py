@@ -3603,6 +3603,24 @@ class DocumentProcessorUI:
         # 配置输入区域的列权重
         self.input_scrollable_frame.columnconfigure(1, weight=1)
         
+        # 加载该方案的上次用户输入以正确显示下拉框选项
+        if self.current_scheme:
+            last_inputs = self.load_user_inputs_for_scheme(self.current_scheme)
+            if last_inputs:
+                # 更新下拉框中的选项和选中值
+                for placeholder, value in last_inputs.items():
+                    if placeholder in self.input_fields:
+                        widget = self.input_fields[placeholder]
+                        if isinstance(widget, ttk.Combobox):
+                            # 对于下拉框，检查值是否在选项中，如果不在则添加
+                            current_values = list(widget['values'])
+                            if value not in current_values and value:
+                                # 添加新值到选项中
+                                current_values.append(value)
+                                widget['values'] = current_values
+                            # 设置当前值
+                            widget.set(value)
+        
     def modify_placeholder_date(self, date_label):
         """
         修改占位符日期功能
@@ -4071,6 +4089,13 @@ class DocumentProcessorUI:
                         widget.delete(0, tk.END)
                         widget.insert(0, value)
                     elif isinstance(widget, ttk.Combobox):
+                        # 检查值是否在选项中，如果不在则添加
+                        current_values = list(widget['values'])
+                        if value not in current_values and value:
+                            # 添加新值到选项中
+                            current_values.append(value)
+                            widget['values'] = current_values
+                        # 设置当前值
                         widget.set(value)
                     elif isinstance(widget, ttk.Label):  # 日期标签
                         widget.config(text=value)
