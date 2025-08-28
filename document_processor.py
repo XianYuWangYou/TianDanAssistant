@@ -26,6 +26,14 @@ class DocumentProcessor:
         self.placeholders = set()  # 存储所有占位符
         self.user_inputs = {}  # 存储用户输入
         self.template_files = []  # 存储选中的模板文件
+        self.progress_callback = None  # 进度回调函数
+
+    def set_progress_callback(self, callback):
+        """
+        设置进度回调函数
+        :param callback: 回调函数
+        """
+        self.progress_callback = callback
 
     def extract_placeholders_from_docx(self, file_path):
         """
@@ -256,126 +264,123 @@ class DocumentProcessor:
             if not os.path.exists(pdf_dir):
                 os.makedirs(pdf_dir)
             
+            # 更新进度窗口状态
+            if self.progress_callback:
+                self.progress_callback(base_name, "converting")
+            
             # 尝试多种方法转换为PDF
             conversion_success = False
             
-            # 方法1: 使用docx2pdf库
+            # 方法1: 使用win32com.client方法（首选，支持WPS和Office）
             try:
                 status_msg = f"正在转换: {base_name}"
                 if status_callback:
                     status_callback(status_msg)
-                print(f"正在尝试使用docx2pdf转换: {docx_path}")
+                print(f"正在尝试使用win32com.client转换: {docx_path}")
                 
-                convert(docx_path, pdf_file)
-                pdf_files.append(pdf_file)
+                import win32com.client
+                import pythoncom
                 
-                status_msg = f"已转换为PDF: {name}.pdf"
-                if status_callback:
-                    status_callback(status_msg)
-                print(f"已转换为PDF: {pdf_file}")
+                # 初始化COM线程
+                pythoncom.CoInitialize()
+                
+                # 添加超时机制和更好的资源管理
+                word = None
+                doc = None
+                try:
+                    # 优先尝试WPS
+                    try:
+                        word = win32com.client.Dispatch("KWPS.Application")
+                        print("使用WPS进行转换")
+                    except:
+                        # 如果WPS不可用，尝试使用Microsoft Word
+                        try:
+                            word = win32com.client.Dispatch("Word.Application")
+                            print("使用Microsoft Word进行转换")
+                        except:
+                            raise Exception("未找到可用的Word处理程序（WPS或Microsoft Word）")
+                    
+                    word.Visible = False  # 正确的属性名（大写V）
+                    word.DisplayAlerts = False  # 禁用警告对话框
+                    
+                    # 打开文档（以只读模式）
+                    doc = word.Documents.Open(os.path.abspath(docx_path), ReadOnly=True)
+                    
+                    # 保存为PDF
+                    doc.SaveAs(os.path.abspath(pdf_file), FileFormat=17)  # 17表示PDF格式
+                    
+                    conversion_success = True
+                except Exception as com_error:
+                    error_msg = f"win32com.client转换过程中出错: {str(com_error)}"
+                    print(error_msg)
+                    raise com_error
+                finally:
+                    # 确保正确释放资源
+                    try:
+                        if doc:
+                            doc.Close(SaveChanges=0)  # 0表示不保存更改直接关闭
+                    except:
+                        pass
+                    try:
+                        if word:
+                            word.Quit()
+                    except:
+                        pass
+                    
+                    # 清理COM资源
+                    pythoncom.CoUninitialize()
+                
+                if conversion_success and os.path.exists(pdf_file):
+                    pdf_files.append(pdf_file)
+                    
+                    status_msg = f"已转换为PDF: {name}.pdf"
+                    if status_callback:
+                        status_callback(status_msg)
+                    print(f"已使用win32com.client转换为PDF: {pdf_file}")
+                    
+                    # 更新进度窗口状态
+                    if self.progress_callback:
+                        self.progress_callback(base_name, "completed")
+                else:
+                    raise Exception("win32com.client未能生成PDF文件")
                 
                 conversion_success = True
-            except Exception as e:
-                error_msg = f"使用docx2pdf转换时出错: {str(e)}"
+            except Exception as e1:
+                error_msg = f"使用win32com.client转换PDF时出错: {str(e1)}"
                 print(error_msg)
+                
+                # 更新进度窗口状态
+                if self.progress_callback:
+                    self.progress_callback(base_name, "failed")
             
-            # 方法2: 使用win32com.client方法作为备选方案
+            # 方法2: 使用docx2pdf库作为备选方案
             if not conversion_success:
                 try:
-                    status_msg = f"正在转换: {base_name} (备用方法)"
+                    status_msg = f"正在转换: {base_name} (docx2pdf)"
                     if status_callback:
                         status_callback(status_msg)
-                    print("正在尝试使用win32com.client转换...")
+                    print("正在尝试使用docx2pdf转换...")
                     
-                    import win32com.client
-                    import pythoncom
+                    convert(docx_path, pdf_file)
+                    pdf_files.append(pdf_file)
                     
-                    # 初始化COM线程
-                    pythoncom.CoInitialize()
+                    status_msg = f"已转换为PDF: {name}.pdf"
+                    if status_callback:
+                        status_callback(status_msg)
+                    print(f"已转换为PDF: {pdf_file}")
                     
-                    # 添加超时机制和更好的资源管理
-                    word = None
-                    doc = None
-                    try:
-                        word = win32com.client.Dispatch("Word.Application")
-                        word.Visible = False  # 正确的属性名（大写V）
-                        word.DisplayAlerts = False  # 禁用警告对话框
-                        
-                        # 打开文档（以只读模式）
-                        doc = word.Documents.Open(os.path.abspath(docx_path), ReadOnly=True)
-                        
-                        # 保存为PDF
-                        doc.SaveAs(os.path.abspath(pdf_file), FileFormat=17)  # 17表示PDF格式
-                        
-                        conversion_success = True
-                    except Exception as com_error:
-                        error_msg = f"win32com.client转换过程中出错: {str(com_error)}"
-                        print(error_msg)
-                        raise com_error
-                    finally:
-                        # 确保正确释放资源
-                        try:
-                            if doc:
-                                doc.Close(SaveChanges=0)  # 0表示不保存更改直接关闭
-                        except:
-                            pass
-                        try:
-                            if word:
-                                word.Quit()
-                        except:
-                            pass
-                        
-                        # 清理COM资源
-                        pythoncom.CoUninitialize()
+                    # 更新进度窗口状态
+                    if self.progress_callback:
+                        self.progress_callback(base_name, "completed")
                     
-                    if conversion_success and os.path.exists(pdf_file):
-                        pdf_files.append(pdf_file)
-                        
-                        status_msg = f"已转换为PDF: {name}.pdf"
-                        if status_callback:
-                            status_callback(status_msg)
-                        print(f"已使用win32com.client转换为PDF: {pdf_file}")
-                    else:
-                        raise Exception("win32com.client未能生成PDF文件")
+                    conversion_success = True
                 except Exception as e2:
-                    error_msg = f"使用win32com.client转换PDF时也出错: {str(e2)}"
+                    error_msg = f"使用docx2pdf转换时出错: {str(e2)}"
                     print(error_msg)
-            
-            # 方法3: 尝试使用LibreOffice进行转换（如果安装了LibreOffice）
-            if not conversion_success:
-                try:
-                    status_msg = f"正在转换: {base_name} (LibreOffice)"
-                    if status_callback:
-                        status_callback(status_msg)
-                    print("正在尝试使用LibreOffice转换...")
                     
-                    import subprocess
-                    # 假设LibreOffice已安装并在PATH中
-                    cmd = [
-                        'soffice',
-                        '--headless',
-                        '--convert-to', 'pdf',
-                        '--outdir', os.path.dirname(os.path.abspath(pdf_file)),
-                        os.path.abspath(docx_path)
-                    ]
-                    subprocess.run(cmd, check=True)
-                    # LibreOffice会生成同名的PDF文件，但可能在不同的位置
-                    generated_pdf = os.path.splitext(os.path.abspath(docx_path))[0] + '.pdf'
-                    if os.path.exists(generated_pdf):
-                        # 将文件移动到我们期望的位置
-                        import shutil
-                        shutil.move(generated_pdf, pdf_file)
-                        pdf_files.append(pdf_file)
-                        
-                        status_msg = f"已转换为PDF: {name}.pdf"
-                        if status_callback:
-                            status_callback(status_msg)
-                        print(f"已使用LibreOffice转换为PDF: {pdf_file}")
-                        
-                        conversion_success = True
-                except Exception as e3:
-                    error_msg = f"使用LibreOffice转换PDF时也出错: {str(e3)}"
-                    print(error_msg)
+                    # 更新进度窗口状态
+                    if self.progress_callback:
+                        self.progress_callback(base_name, "failed")
             
             # 如果所有方法都失败了，抛出异常
             if not conversion_success:
@@ -405,10 +410,14 @@ class DocumentProcessor:
             if not os.path.exists(pdf_dir):
                 os.makedirs(pdf_dir)
             
+            # 更新进度窗口状态
+            if self.progress_callback:
+                self.progress_callback(base_name, "converting")
+            
             # 尝试多种方法转换为PDF
             conversion_success = False
             
-            # 方法1: 使用win32com.client方法
+            # 方法1: 使用win32com.client方法（首选，支持WPS和Office）
             try:
                 status_msg = f"正在转换: {base_name}"
                 if status_callback:
@@ -425,7 +434,18 @@ class DocumentProcessor:
                 excel = None
                 workbook = None
                 try:
-                    excel = win32com.client.Dispatch("Excel.Application")
+                    # 优先尝试WPS
+                    try:
+                        excel = win32com.client.Dispatch("KET.Application")
+                        print("使用WPS表格进行转换")
+                    except:
+                        # 如果WPS不可用，尝试使用Microsoft Excel
+                        try:
+                            excel = win32com.client.Dispatch("Excel.Application")
+                            print("使用Microsoft Excel进行转换")
+                        except:
+                            raise Exception("未找到可用的Excel处理程序（WPS表格或Microsoft Excel）")
+                    
                     excel.Visible = False  # 正确的属性名（大写V）
                     excel.DisplayAlerts = False  # 禁用警告对话框
                     
@@ -463,6 +483,10 @@ class DocumentProcessor:
                     if status_callback:
                         status_callback(status_msg)
                     print(f"已使用win32com.client转换Excel为PDF: {pdf_file}")
+                    
+                    # 更新进度窗口状态
+                    if self.progress_callback:
+                        self.progress_callback(base_name, "completed")
                 else:
                     raise Exception("win32com.client未能生成PDF文件")
                 
@@ -470,48 +494,65 @@ class DocumentProcessor:
             except Exception as e1:
                 error_msg = f"使用win32com.client转换Excel为PDF时出错: {str(e1)}"
                 print(error_msg)
+                
+                # 更新进度窗口状态
+                if self.progress_callback:
+                    self.progress_callback(base_name, "failed")
             
-            # 方法2: 使用LibreOffice进行转换（如果安装了LibreOffice）
+            # 方法2: 使用docx2pdf库作为备选方案
             if not conversion_success:
                 try:
-                    status_msg = f"正在转换: {base_name} (LibreOffice)"
+                    status_msg = f"正在转换: {base_name} (docx2pdf)"
                     if status_callback:
                         status_callback(status_msg)
-                    print("正在尝试使用LibreOffice转换Excel...")
+                    print("正在尝试使用docx2pdf转换Excel...")
                     
-                    import subprocess
-                    # 假设LibreOffice已安装并在PATH中
-                    cmd = [
-                        'soffice',
-                        '--headless',
-                        '--convert-to', 'pdf',
-                        '--outdir', os.path.dirname(os.path.abspath(pdf_file)),
-                        os.path.abspath(xlsx_path)
-                    ]
-                    subprocess.run(cmd, check=True)
-                    # LibreOffice会生成同名的PDF文件，但可能在不同的位置
-                    generated_pdf = os.path.splitext(os.path.abspath(xlsx_path))[0] + '.pdf'
-                    if os.path.exists(generated_pdf):
-                        # 将文件移动到我们期望的位置
-                        import shutil
-                        shutil.move(generated_pdf, pdf_file)
-                        pdf_files.append(pdf_file)
-                        
-                        status_msg = f"已转换为PDF: {name}.pdf"
-                        if status_callback:
-                            status_callback(status_msg)
-                        print(f"已使用LibreOffice转换Excel为PDF: {pdf_file}")
-                        
-                        conversion_success = True
+                    convert(xlsx_path, pdf_file)
+                    pdf_files.append(pdf_file)
+                    
+                    status_msg = f"已转换为PDF: {name}.pdf"
+                    if status_callback:
+                        status_callback(status_msg)
+                    print(f"已使用docx2pdf转换Excel为PDF: {pdf_file}")
+                    
+                    # 更新进度窗口状态
+                    if self.progress_callback:
+                        self.progress_callback(base_name, "completed")
+                    
+                    conversion_success = True
                 except Exception as e2:
-                    error_msg = f"使用LibreOffice转换Excel为PDF时出错: {str(e2)}"
+                    error_msg = f"使用docx2pdf转换Excel为PDF时出错: {str(e2)}"
                     print(error_msg)
+                    
+                    # 更新进度窗口状态
+                    if self.progress_callback:
+                        self.progress_callback(base_name, "failed")
             
             # 如果所有方法都失败了，抛出异常
             if not conversion_success:
                 raise Exception("所有PDF转换方法都失败了，请检查系统配置")
         
         return pdf_files
+
+    def cleanup_single_pdfs(self, pdf_paths, status_callback=None):
+        """
+        清理单个PDF文件
+        :param pdf_paths: 要删除的PDF文件路径列表
+        :param status_callback: 状态更新回调函数
+        """
+        for pdf_path in pdf_paths:
+            try:
+                if os.path.exists(pdf_path):
+                    os.remove(pdf_path)
+                    status_msg = f"已删除临时文件: {os.path.basename(pdf_path)}"
+                    if status_callback:
+                        status_callback(status_msg)
+                    print(f"已删除临时文件: {pdf_path}")
+            except Exception as e:
+                error_msg = f"删除文件 {os.path.basename(pdf_path)} 时出错: {str(e)}"
+                if status_callback:
+                    status_callback(error_msg)
+                print(f"删除文件 {pdf_path} 时出错: {str(e)}")
 
     def merge_pdfs(self, pdf_paths, output_path, status_callback=None):
         """
@@ -560,26 +601,6 @@ class DocumentProcessor:
                 status_callback(error_msg)
             print(f"合并PDF时出错: {str(e)}")
             raise e
-
-    def cleanup_single_pdfs(self, pdf_paths, status_callback=None):
-        """
-        清理单个PDF文件
-        :param pdf_paths: 要删除的PDF文件路径列表
-        :param status_callback: 状态更新回调函数
-        """
-        for pdf_path in pdf_paths:
-            try:
-                if os.path.exists(pdf_path):
-                    os.remove(pdf_path)
-                    status_msg = f"已删除临时文件: {os.path.basename(pdf_path)}"
-                    if status_callback:
-                        status_callback(status_msg)
-                    print(f"已删除临时文件: {pdf_path}")
-            except Exception as e:
-                error_msg = f"删除文件 {os.path.basename(pdf_path)} 时出错: {str(e)}"
-                if status_callback:
-                    status_callback(error_msg)
-                print(f"删除文件 {pdf_path} 时出错: {str(e)}")
 
 
 class DocumentProcessorUI:
@@ -1404,7 +1425,7 @@ class DocumentProcessorUI:
             elif os.path.splitext(file_path)[1].lower() not in unconvertible_extensions:
                 files_to_move.append(file_path)
         
-        # 创建“未转换”文件夹并移动不支持的文件
+        # 创建"未转换"文件夹并移动不支持的文件
         if files_to_move:
             unconverted_folder = os.path.join(folder_path, "[未转换]")
             if not os.path.exists(unconverted_folder):
@@ -1438,6 +1459,8 @@ class DocumentProcessorUI:
         try:
             import win32com.client
             import pythoncom
+            import threading
+            import time
             
             # 初始化COM线程
             pythoncom.CoInitialize()
@@ -1521,21 +1544,25 @@ class DocumentProcessorUI:
                             # 获取文件扩展名
                             file_ext = os.path.splitext(file_path)[1].lower()
                             
-                            # 打开文件
-                            workbook = et_app.Workbooks.Open(file_path)
-                            
-                            # 生成XLSX文件名
-                            xlsx_file = os.path.splitext(file_path)[0] + ".xlsx"
-                            
-                            # 另存为XLSX格式 (51是XLSX格式的代码)
-                            workbook.SaveAs(xlsx_file, 51)
-                            
-                            # 关闭工作簿
-                            workbook.Close()
-                            
-                            success_count += 1
-                            file_type = "ET" if file_ext == '.et' else "XLS"
-                            self.update_status(f"已转换 {file_type} 文件: {os.path.basename(file_path)} -> {os.path.basename(xlsx_file)}")
+                            # 打开文件（添加超时和错误处理）
+                            try:
+                                workbook = et_app.Workbooks.Open(file_path)
+                                
+                                # 生成XLSX文件名
+                                xlsx_file = os.path.splitext(file_path)[0] + ".xlsx"
+                                
+                                # 另存为XLSX格式 (51是XLSX格式的代码)
+                                workbook.SaveAs(xlsx_file, 51)
+                                
+                                # 关闭工作簿
+                                workbook.Close()
+                                
+                                success_count += 1
+                                file_type = "ET" if file_ext == '.et' else "XLS"
+                                self.update_status(f"已转换 {file_type} 文件: {os.path.basename(file_path)} -> {os.path.basename(xlsx_file)}")
+                            except Exception as open_error:
+                                file_type = "ET" if os.path.splitext(file_path)[1].lower() == '.et' else "XLS"
+                                self.log_and_status(f"打开或转换失败 {file_type} 文件 {os.path.basename(file_path)}: {str(open_error)}")
                         except Exception as e:
                             file_type = "ET" if os.path.splitext(file_path)[1].lower() == '.et' else "XLS"
                             self.log_and_status(f"转换失败 {file_type} 文件 {os.path.basename(file_path)}: {str(e)}")
@@ -1552,7 +1579,7 @@ class DocumentProcessorUI:
             if success_count > 0:
                 try:
                     from tkinter import messagebox
-                    result = messagebox.askyesno("转换完成", "是否删除已成功转换的源文件？\n(选择“否”将把源文件移动到“源文件”文件夹中)")
+                    result = messagebox.askyesno("转换完成", "是否删除已成功转换的源文件？\n(选择\"否\"将把源文件移动到\"源文件\"文件夹中)")
                     if result:
                         deleted_count = 0
                         for file_path in files_to_convert:
@@ -4175,17 +4202,36 @@ class DocumentProcessorUI:
             return
         
         try:
+            # 初始化文件状态跟踪
+            all_files = [os.path.basename(f) for f in docx_files + xlsx_files]
+            
+            # 在主线程中创建进度窗口
+            self.root.after(0, lambda: self._create_pdf_progress_window(len(all_files)))
+            
+            # 等待进度窗口创建完成
+            import time
+            time.sleep(0.1)
+            
+            # 初始化所有文件状态为等待
+            for filename in all_files:
+                if hasattr(self, 'pdf_progress_window'):
+                    self.root.after(0, lambda f=filename: self.update_pdf_progress(f, "waiting"))
+            
             pdf_files = []  # 初始化pdf_files列表
             
             # 将生成的Word文档转换为PDF
             if docx_files:
                 self.update_status("开始转换Word文档为PDF...")
+                # 设置进度回调
+                self.processor.set_progress_callback(self._pdf_progress_callback)
                 pdf_files = self.processor.convert_docx_to_pdf(docx_files, status_callback=self.update_status)
                 self.update_status(f"成功转换 {len(pdf_files)} 个PDF文件")
             
             # 将生成的Excel文件转换为PDF
             if xlsx_files:
                 self.update_status("开始转换Excel文件为PDF...")
+                # 设置进度回调
+                self.processor.set_progress_callback(self._pdf_progress_callback)
                 xlsx_pdf_files = self.processor.convert_xlsx_to_pdf(xlsx_files, status_callback=self.update_status)
                 pdf_files.extend(xlsx_pdf_files)
                 self.update_status(f"成功转换Excel为PDF {len(xlsx_pdf_files)} 个文件")
@@ -4205,11 +4251,165 @@ class DocumentProcessorUI:
             self.processor.cleanup_single_pdfs(pdf_files, status_callback=self.update_status)
             
             self.log_and_status(f"成功: PDF合并完成！文件已保存为: {os.path.basename(merged_pdf_path)}")
+            
+            # 启用关闭按钮
+            if hasattr(self, 'pdf_progress_window'):
+                self.root.after(0, lambda: self.close_progress_button.config(state=tk.NORMAL))
         except Exception as e:
             error_msg = f"错误: 合并PDF时出错：{str(e)}"
             self.log_and_status(error_msg)
             # 使用状态栏显示替代弹窗提示，符合用户偏好
             self.update_status("请重启软件并关闭所有office相关软件。")
+    
+    def _pdf_progress_callback(self, filename, status):
+        """
+        PDF转换进度回调函数
+        :param filename: 文件名
+        :param status: 状态
+        """
+        if hasattr(self, 'pdf_progress_window') and self.pdf_progress_window:
+            self.root.after(0, lambda: self.update_pdf_progress(filename, status))
+    
+    def _create_pdf_progress_window(self, total_files):
+        """
+        创建PDF转换进度窗口
+        :param total_files: 总文件数
+        """
+        # 创建进度窗口
+        self.pdf_progress_window = tk.Toplevel(self.root)
+        self.pdf_progress_window.title("PDF转换进度")
+        self.pdf_progress_window.geometry("500x400")
+        self.pdf_progress_window.resizable(False, False)
+        
+        # 居中显示
+        self.center_dialog(self.pdf_progress_window, 500, 400)
+        self.pdf_progress_window.transient(self.root)
+        self.pdf_progress_window.grab_set()
+        
+        # 设置窗口图标
+        self.set_dialog_icon(self.pdf_progress_window)
+        
+        # 创建主框架
+        main_frame = ttk.Frame(self.pdf_progress_window, padding="10")
+        main_frame.pack(fill=tk.BOTH, expand=True)
+        
+        # 标题
+        ttk.Label(main_frame, text="PDF转换进度", font=("Arial", 12, "bold")).pack(pady=(0, 10))
+        
+        # 进度信息
+        self.progress_info_label = ttk.Label(main_frame, text=f"总共需要转换 {total_files} 个文件")
+        self.progress_info_label.pack(anchor=tk.W)
+        
+        # 进度条
+        self.progress_var = tk.DoubleVar()
+        self.progress_bar = ttk.Progressbar(main_frame, variable=self.progress_var, maximum=total_files)
+        self.progress_bar.pack(fill=tk.X, pady=(5, 10))
+        
+        # 当前任务标签
+        self.current_task_label = ttk.Label(main_frame, text="准备开始转换...")
+        self.current_task_label.pack(anchor=tk.W, pady=(0, 10))
+        
+        # 文件列表框架
+        list_frame = ttk.LabelFrame(main_frame, text="文件转换状态", padding="5")
+        list_frame.pack(fill=tk.BOTH, expand=True)
+        
+        # 创建列表框和滚动条
+        listbox_frame = ttk.Frame(list_frame)
+        listbox_frame.pack(fill=tk.BOTH, expand=True)
+        
+        self.file_listbox = tk.Listbox(listbox_frame, height=15)
+        self.file_listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        
+        scrollbar = ttk.Scrollbar(listbox_frame, orient=tk.VERTICAL, command=self.file_listbox.yview)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        self.file_listbox.config(yscrollcommand=scrollbar.set)
+        
+        # 关闭按钮（初始禁用）
+        self.close_progress_button = ttk.Button(main_frame, text="关闭", command=self.pdf_progress_window.destroy, state=tk.DISABLED)
+        self.close_progress_button.pack(pady=(10, 0))
+        
+        # 初始化文件状态跟踪
+        self.file_status = {}
+        self.completed_files = 0
+        self.total_files = total_files
+    
+    def update_pdf_progress(self, filename, status):
+        """
+        更新PDF转换进度
+        :param filename: 文件名
+        :param status: 状态 (waiting, converting, completed, failed)
+        """
+        if not hasattr(self, 'pdf_progress_window') or not self.pdf_progress_window:
+            return
+        
+        # 更新文件状态
+        self.file_status[filename] = status
+        
+        # 更新列表框显示
+        self._update_progress_display(filename, status)
+    
+    def _update_progress_display(self, filename, status):
+        """
+        更新进度显示
+        :param filename: 文件名
+        :param status: 状态
+        """
+        # 清空列表框
+        self.file_listbox.delete(0, tk.END)
+        
+        # 重新添加所有文件及其状态
+        status_symbols = {
+            "waiting": "⏳",
+            "converting": "🔄",
+            "completed": "✅",
+            "failed": "❌"
+        }
+        
+        for file, stat in self.file_status.items():
+            symbol = status_symbols.get(stat, "❓")
+            display_text = f"{symbol} {file}"
+            self.file_listbox.insert(tk.END, display_text)
+            
+            # 根据状态设置颜色
+            if stat == "completed":
+                self.file_listbox.itemconfig(tk.END, {'fg': 'green'})
+            elif stat == "failed":
+                self.file_listbox.itemconfig(tk.END, {'fg': 'red'})
+            elif stat == "converting":
+                self.file_listbox.itemconfig(tk.END, {'fg': 'blue'})
+        
+        # 更新进度条和信息
+        if status == "completed":
+            self.completed_files += 1
+            
+        self.progress_var.set(self.completed_files)
+        self.progress_info_label.config(text=f"已完成: {self.completed_files}/{self.total_files}")
+        
+        # 更新当前任务标签
+        status_texts = {
+            "waiting": "等待转换",
+            "converting": "正在转换",
+            "completed": "转换完成",
+            "failed": "转换失败"
+        }
+        self.current_task_label.config(text=f"正在处理: {filename} ({status_texts.get(status, '未知状态')})")
+        
+        # 自动滚动到当前处理的文件位置
+        if status in ["converting", "completed", "failed"]:
+            # 找到当前文件在列表中的位置
+            for i, (file, stat) in enumerate(self.file_status.items()):
+                if file == filename:
+                    # 滚动到该位置
+                    self.file_listbox.see(i)
+                    # 选中该项以便更清楚地看到
+                    self.file_listbox.selection_clear(0, tk.END)
+                    self.file_listbox.selection_set(i)
+                    break
+        
+        # 如果所有文件都处理完成，启用关闭按钮
+        if self.completed_files >= self.total_files:
+            self.close_progress_button.config(state=tk.NORMAL)
+            self.current_task_label.config(text="所有文件转换完成！")
 
 def main():
     """
