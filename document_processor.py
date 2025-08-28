@@ -1031,18 +1031,18 @@ class DocumentProcessorUI:
         update_frame = ttk.LabelFrame(options_frame, text="软件更新", padding="10")
         update_frame.grid(row=2, column=0, sticky=(tk.W, tk.E), pady=(0, 20))
         update_frame.columnconfigure(1, weight=1)
-        
+
         # 检查更新按钮
-        self.update_button = ttk.Button(update_frame, text="检查更新")
+        self.update_button = ttk.Button(update_frame, text="检查更新",state="disabled")
         self.update_button.grid(row=0, column=0, padx=(0, 10), pady=5, sticky=tk.W)
         
         # 添加说明文字
-        ttk.Label(update_frame, text="检查是否有新版本可用").grid(row=0, column=1, pady=5, sticky=tk.W)
+        ttk.Label(update_frame, text="该功能施工中......").grid(row=0, column=1, pady=5, sticky=tk.W)
         
         # 添加版本信息
         version_frame = ttk.Frame(update_frame)
         version_frame.grid(row=1, column=0, columnspan=2, pady=(10, 0), sticky=(tk.W, tk.E))
-        ttk.Label(version_frame, text="当前版本: v1.1.0").pack(anchor=tk.W)
+        ttk.Label(version_frame, text="当前版本: v1.1.4").pack(anchor=tk.W)
         
         # 关于区域
         about_frame = ttk.LabelFrame(options_frame, text="关于", padding="10")
@@ -1095,6 +1095,24 @@ class DocumentProcessorUI:
         spacer_frame = ttk.Frame(options_frame)
         spacer_frame.grid(row=4, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
     
+    def check_for_updates(self):
+            """
+            检查更新
+            """
+            try:
+                # 导入自动更新模块
+                from auto_updater import check_updates_background
+                # 在后台线程中检查更新
+                import threading
+                update_thread = threading.Thread(target=check_updates_background, args=(self.root,))
+                update_thread.daemon = True
+                update_thread.start()
+            except Exception as e:
+                print(f"检查更新时出错: {e}")
+                # 显示错误消息
+                from tkinter import messagebox
+                messagebox.showerror("检查更新", f"检查更新时出错:\n{str(e)}")
+
     def open_forum_link(self):
         """
         打开吾爱破解论坛链接
