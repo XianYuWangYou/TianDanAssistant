@@ -1,10 +1,10 @@
-# 填单助手 (TianDanAssistant)
+# 文档表格批量填写助手 (TianDanAssistant)
 
 ![公众号](https://img.shields.io/badge/公众号-大融写字的地方-green)
 ![吾爱破解](https://img.shields.io/badge/吾爱破解-XianYuWangYou-red)
 ![Python](https://img.shields.io/badge/python-3.10%2B-yellow)
 
-填单助手是一个自动化文档处理工具，可以自动识别Word和Excel模板中的占位符，并根据用户输入的信息批量生成填写完成的文档。
+文档表格批量填写助手是一个自动化文档处理工具，可以自动识别Word和Excel模板中的占位符，并根据用户输入的信息批量生成填写完成的文档。
 
 ## 项目地址
 [![GitHub](https://img.shields.io/badge/GitHub-TianDanAssistant-blue)](github:https://github.com/XianYuWangYou/TianDanAssistant)
@@ -83,13 +83,17 @@ pip install -r requirements.txt
   <img src="images/软件预览/screen1.PNG" alt="主界面" style="width: 80%;">
   <img src="images/软件预览/screen2.PNG" alt="配置文档组合" style="width: 80%;">
   <img src="images/软件预览/screen3.PNG" alt="信息填写界面" style="width: 80%;">
-  <img src="images/软件预览/screen4.PNG" alt="录入框类型" style="width: 40%;">
+  <img src="images/软件预览/screen4.PNG" alt="选项设置" style="width: 80%;">
 </div>
 
 ## 配置文件说明
 
-- `config.json`：保存用户输入信息和程序设置
-- `schemes.json`：定义不同的处理方案，包括模板文件列表和占位符顺序
+- `app_data.json`：核心配置文件，包含以下内容
+  - `config`：软件配置信息，如上次使用的文件夹路径
+  - `placeholder_configs`：占位符配置，定义每个字段的输入类型和选项
+  - `user_inputs`：用户输入数据，按方案保存已填写的信息
+  - `schemes`：方案配置，定义每个方案包含的模板文件和占位符顺序
+  - `history`：历史记录，保存操作历史供后续复用
 
 ## 支持与赞助
 

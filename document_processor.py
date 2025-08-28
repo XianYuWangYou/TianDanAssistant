@@ -612,7 +612,7 @@ class DocumentProcessorUI:
         self.root = root
         # 将窗口居中显示
         self.center_window()
-        self.root.title("填单助手 By:www.52pojie.cn@xianyuwangyou")
+        self.root.title("文档表格批量填写助手")
         self.root.geometry("800x650")
         self.root.resizable(False, False)
        
@@ -1051,7 +1051,7 @@ class DocumentProcessorUI:
         
         # 关于信息
         about_text = ttk.Label(about_frame, 
-                              text="填单助手是一个自动化的填单工具，"
+                              text="文档表格批量填写助手是一个自动化的填单工具，"
                                    "通过替换Word和Excel模板中的占位符，"
                                    "批量生成文档。\n\n"
                                    "作者: 咸鱼网友\nBy:XianYuWangYou")
