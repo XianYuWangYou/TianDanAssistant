@@ -1077,7 +1077,7 @@ class DocumentProcessorUI:
         
         forum_link = ttk.Label(link_frame, text="https://gitee.com/xianyuwangyou/TianDanAssistant", foreground="blue", cursor="hand2")
         forum_link.pack(side=tk.LEFT, padx=(5, 0))
-        forum_link.bind("<Button-1>", lambda e: self.open_forum_link())
+        forum_link.bind("<Button-1>", lambda e: self.open_gitee_link())
 
         # Github链接
         link_frame = ttk.Label(about_frame)
@@ -1088,37 +1088,33 @@ class DocumentProcessorUI:
         
         forum_link = ttk.Label(link_frame, text="https://github.com/XianYuWangYou/TianDanAssistant", foreground="blue", cursor="hand2")
         forum_link.pack(side=tk.LEFT, padx=(5, 0))
-        forum_link.bind("<Button-1>", lambda e: self.open_forum_link())
+        forum_link.bind("<Button-1>", lambda e: self.open_github_link())
 
         # 添加空白区域以填充空间
         options_frame.rowconfigure(4, weight=1)
         spacer_frame = ttk.Frame(options_frame)
         spacer_frame.grid(row=4, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
-    
-    def check_for_updates(self):
-            """
-            检查更新
-            """
-            try:
-                # 导入自动更新模块
-                from auto_updater import check_updates_background
-                # 在后台线程中检查更新
-                import threading
-                update_thread = threading.Thread(target=check_updates_background, args=(self.root,))
-                update_thread.daemon = True
-                update_thread.start()
-            except Exception as e:
-                print(f"检查更新时出错: {e}")
-                # 显示错误消息
-                from tkinter import messagebox
-                messagebox.showerror("检查更新", f"检查更新时出错:\n{str(e)}")
 
     def open_forum_link(self):
         """
         打开吾爱破解论坛链接
         """
         import webbrowser
-        webbrowser.open("https://www.52pojie.cn/")
+        webbrowser.open("https://www.52pojie.cn/thread-2053988-1-1.html")
+
+    def open_gitee_link(self):
+        """
+        打开Gitee项目链接
+        """
+        import webbrowser
+        webbrowser.open("https://gitee.com/xianyuwangyou/TianDanAssistant")
+
+    def open_github_link(self):
+        """
+        打开Github项目链接
+        """
+        import webbrowser
+        webbrowser.open("https://github.com/XianYuWangYou/TianDanAssistant")
 
     def ask_to_open_output_dir(self):
         """
