@@ -1027,33 +1027,6 @@ class DocumentProcessorUI:
         options_frame.columnconfigure(0, weight=1)
         options_frame.rowconfigure(0, weight=1)
         
-        # 设置选项区域的网格权重
-        options_frame.columnconfigure(0, weight=1)
-        
-        # 设置区域
-        settings_frame = ttk.LabelFrame(options_frame, text="设置", padding="10")
-        settings_frame.grid(row=1, column=0, sticky=(tk.W, tk.E), pady=(0, 20))
-        settings_frame.columnconfigure(1, weight=1)
-        
-        # PDF转换线程数设置
-        ttk.Label(settings_frame, text="PDF转换线程数:").grid(row=0, column=0, sticky=tk.W, pady=5)
-        self.pdf_threads_var = tk.StringVar(value=self.load_pdf_threads_setting())
-        pdf_threads_spinbox = ttk.Spinbox(
-            settings_frame, 
-            from_=1, 
-            to=5, 
-            textvariable=self.pdf_threads_var,
-            width=5,
-            command=self.save_pdf_threads_setting
-        )
-        pdf_threads_spinbox.grid(row=0, column=1, sticky=tk.W, padx=(10, 0), pady=5)
-        
-        # 保存按钮
-        save_button = ttk.Button(settings_frame, text="保存设置", command=self.save_pdf_threads_setting)
-        save_button.grid(row=1, column=0, sticky=tk.W, padx=(0, 10), pady=5)
-                
-        self.pdf_threads_var.trace('w', lambda *args: self.save_pdf_threads_setting())
-        
         # 检查更新区域
         update_frame = ttk.LabelFrame(options_frame, text="软件更新", padding="10")
         update_frame.grid(row=2, column=0, sticky=(tk.W, tk.E), pady=(0, 20))
@@ -1128,58 +1101,6 @@ class DocumentProcessorUI:
         """
         import webbrowser
         webbrowser.open("https://www.52pojie.cn/")
-    
-    def load_pdf_threads_setting(self):
-        """
-        加载PDF转换线程数设置
-        """
-        try:
-            if os.path.exists("app_data.json"):
-                with open("app_data.json", "r", encoding="utf-8") as f:
-                    data = json.load(f)
-                return str(data.get("settings", {}).get("pdf_threads", 1))
-            else:
-                return "1"
-        except Exception as e:
-            print(f"加载PDF线程设置时出错: {e}")
-            return "1"
-    
-    def save_pdf_threads_setting(self, *args):
-        """
-        保存PDF转换线程数设置
-        """
-        try:
-            # 获取当前设置值
-            try:
-                threads_value = int(self.pdf_threads_var.get())
-                # 确保值在有效范围内
-                threads_value = max(1, min(5, threads_value))
-                # 更新变量值（以防输入了范围外的值）
-                self.pdf_threads_var.set(str(threads_value))
-            except ValueError:
-                # 如果转换失败，使用默认值
-                threads_value = 1
-                self.pdf_threads_var.set("1")
-            
-            # 读取现有配置
-            config = {}
-            if os.path.exists("app_data.json"):
-                with open("app_data.json", "r", encoding="utf-8") as f:
-                    config = json.load(f)
-            
-            # 确保settings键存在
-            if "settings" not in config:
-                config["settings"] = {}
-            
-            # 更新PDF线程数设置
-            config["settings"]["pdf_threads"] = threads_value
-            
-            # 保存配置
-            with open("app_data.json", "w", encoding="utf-8") as f:
-                json.dump(config, f, ensure_ascii=False, indent=2)
-                
-        except Exception as e:
-            print(f"保存PDF线程设置时出错: {e}")
 
     def ask_to_open_output_dir(self):
         """
@@ -4184,7 +4105,7 @@ class DocumentProcessorUI:
         thread = threading.Thread(target=self._merge_to_pdf_thread)
         thread.daemon = True  # 设置为守护线程，确保主程序退出时线程也会退出
         thread.start()
-    
+
     def _merge_to_pdf_thread(self):
         """
         在线程中执行PDF合并操作
@@ -4219,20 +4140,26 @@ class DocumentProcessorUI:
             
             pdf_files = []  # 初始化pdf_files列表
             
-            # 将生成的Word文档转换为PDF
+            # 将生成的Word文档转换为PDF（顺序处理）
             if docx_files:
                 self.update_status("开始转换Word文档为PDF...")
                 # 设置进度回调
                 self.processor.set_progress_callback(self._pdf_progress_callback)
-                pdf_files = self.processor.convert_docx_to_pdf(docx_files, status_callback=self.update_status)
+                pdf_files = self.processor.convert_docx_to_pdf(
+                    docx_files, 
+                    status_callback=self.update_status
+                )
                 self.update_status(f"成功转换 {len(pdf_files)} 个PDF文件")
             
-            # 将生成的Excel文件转换为PDF
+            # 将生成的Excel文件转换为PDF（顺序处理）
             if xlsx_files:
                 self.update_status("开始转换Excel文件为PDF...")
                 # 设置进度回调
                 self.processor.set_progress_callback(self._pdf_progress_callback)
-                xlsx_pdf_files = self.processor.convert_xlsx_to_pdf(xlsx_files, status_callback=self.update_status)
+                xlsx_pdf_files = self.processor.convert_xlsx_to_pdf(
+                    xlsx_files, 
+                    status_callback=self.update_status
+                )
                 pdf_files.extend(xlsx_pdf_files)
                 self.update_status(f"成功转换Excel为PDF {len(xlsx_pdf_files)} 个文件")
             
