@@ -1,7 +1,7 @@
 {
   "config": {
-    "last_template_dir": "C:/Users/wangzongrong/Desktop/格式化模板",
-    "last_output_dir": "C:/Users/wangzongrong/Desktop/111"
+    "last_template_dir": "/home/xianyuwangyou/桌面/格式化模板",
+    "last_output_dir": "/home/xianyuwangyou/桌面/test"
   },
   "placeholder_configs": {
     "注册日期": {
@@ -117,28 +117,28 @@
   "schemes": {
     "对公开户": {
       "template_files": [
-        "C:/Users/wangzongrong/Desktop/对公开户表单资料/单位银行结算账户及产品授权委托书.docx",
-        "C:/Users/wangzongrong/Desktop/对公开户表单资料/附件3：中国农业银行江西省分行人民币单位银行结算账户业务尽职调查报告.docx",
-        "C:/Users/wangzongrong/Desktop/对公开户表单资料/关于买卖、出租、出借手机卡、银行卡、身份证件、对公账户等涉嫌违法犯罪告知书.docx",
-        "C:/Users/wangzongrong/Desktop/对公开户表单资料/合法开立和使用银行账户承诺书（对公客户）.docx",
-        "C:/Users/wangzongrong/Desktop/对公开户表单资料/基本账户承诺书.xlsx",
-        "C:/Users/wangzongrong/Desktop/对公开户表单资料/开户申请（一般户）.docx",
-        "C:/Users/wangzongrong/Desktop/对公开户表单资料/使用电子支付密码协议2022年版本.docx",
-        "C:/Users/wangzongrong/Desktop/对公开户表单资料/授权书（手机号码核查）-法人.docx",
-        "C:/Users/wangzongrong/Desktop/对公开户表单资料/授权书（手机号码核查）-经办人.docx",
-        "C:/Users/wangzongrong/Desktop/对公开户表单资料/委托书.docx",
-        "C:/Users/wangzongrong/Desktop/对公开户表单资料/中国农业银行对公账户使用提示.docx",
-        "C:/Users/wangzongrong/Desktop/格式化模板/7 贷款业务申请表.xlsx",
-        "C:/Users/wangzongrong/Desktop/格式化模板/8 共同还款承诺书.docx",
-        "C:/Users/wangzongrong/Desktop/格式化模板/不违规流入房市承诺函.docx",
-        "C:/Users/wangzongrong/Desktop/格式化模板/附件1：中国农业银行金穗信用卡农户调查表.docx",
-        "C:/Users/wangzongrong/Desktop/格式化模板/附件2：“富民贷”申请推荐审核表 (1).xlsx",
-        "C:/Users/wangzongrong/Desktop/格式化模板/附件2：授权书（个人征信业务）ABC(2022)5014_借款人.docx",
-        "C:/Users/wangzongrong/Desktop/格式化模板/附件2：授权书（个人征信业务）ABC(2022)5014_联系人.docx",
-        "C:/Users/wangzongrong/Desktop/格式化模板/惠农e贷农户贷款申请表.docx",
-        "C:/Users/wangzongrong/Desktop/格式化模板/免推荐免评议客户清单.xlsx",
-        "C:/Users/wangzongrong/Desktop/格式化模板/农户贷款面谈记录.docx",
-        "C:/Users/wangzongrong/Desktop/格式化模板/资料真实性承诺书.docx"
+        "/home/xianyuwangyou/桌面/格式化模板/7 贷款业务申请表.xlsx",
+        "/home/xianyuwangyou/桌面/格式化模板/8 共同还款承诺书.docx",
+        "/home/xianyuwangyou/桌面/格式化模板/不违规流入房市承诺函.docx",
+        "/home/xianyuwangyou/桌面/格式化模板/中国农业银行对公账户使用提示.docx",
+        "/home/xianyuwangyou/桌面/格式化模板/使用电子支付密码协议2022年版本.docx",
+        "/home/xianyuwangyou/桌面/格式化模板/免推荐免评议客户清单.xlsx",
+        "/home/xianyuwangyou/桌面/格式化模板/关于买卖、出租、出借手机卡、银行卡、身份证件、对公账户等涉嫌违法犯罪告知书.docx",
+        "/home/xianyuwangyou/桌面/格式化模板/农户贷款面谈记录.docx",
+        "/home/xianyuwangyou/桌面/格式化模板/单位银行结算账户及产品授权委托书.docx",
+        "/home/xianyuwangyou/桌面/格式化模板/合法开立和使用银行账户承诺书（对公客户）.docx",
+        "/home/xianyuwangyou/桌面/格式化模板/基本账户承诺书.xlsx",
+        "/home/xianyuwangyou/桌面/格式化模板/委托书.docx",
+        "/home/xianyuwangyou/桌面/格式化模板/开户申请（一般户）.docx",
+        "/home/xianyuwangyou/桌面/格式化模板/惠农e贷农户贷款申请表.docx",
+        "/home/xianyuwangyou/桌面/格式化模板/授权书（手机号码核查）-法人.docx",
+        "/home/xianyuwangyou/桌面/格式化模板/授权书（手机号码核查）-经办人.docx",
+        "/home/xianyuwangyou/桌面/格式化模板/资料真实性承诺书.docx",
+        "/home/xianyuwangyou/桌面/格式化模板/附件1：中国农业银行金穗信用卡农户调查表.docx",
+        "/home/xianyuwangyou/桌面/格式化模板/附件2：“富民贷”申请推荐审核表 (1).xlsx",
+        "/home/xianyuwangyou/桌面/格式化模板/附件2：授权书（个人征信业务）ABC(2022)5014_借款人.docx",
+        "/home/xianyuwangyou/桌面/格式化模板/附件2：授权书（个人征信业务）ABC(2022)5014_联系人.docx",
+        "/home/xianyuwangyou/桌面/格式化模板/附件3：中国农业银行江西省分行人民币单位银行结算账户业务尽职调查报告.docx"
       ],
       "placeholder_order": [
         "单位名称",

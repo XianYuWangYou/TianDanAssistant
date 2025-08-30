@@ -18,6 +18,15 @@ EXCEL_PROCESSING_AVAILABLE = True
 PDF_CONVERSION_AVAILABLE = True
 PDF_MERGING_AVAILABLE = True
 
+# 检查是否可以导入win32相关模块
+try:
+    # 忽略Pylance在Linux上的导入错误报告
+    import win32com.client  # type: ignore
+    import pythoncom  # type: ignore
+    WIN32_AVAILABLE = True
+except ImportError:
+    WIN32_AVAILABLE = False
+
 class DocumentProcessor:
     def __init__(self):
         """
@@ -271,87 +280,138 @@ class DocumentProcessor:
             # 尝试多种方法转换为PDF
             conversion_success = False
             
-            # 方法1: 使用win32com.client方法（首选，支持WPS和Office）
-            try:
-                status_msg = f"正在转换: {base_name}"
-                if status_callback:
-                    status_callback(status_msg)
-                print(f"正在尝试使用win32com.client转换: {docx_path}")
-                
-                import win32com.client
-                import pythoncom
-                
-                # 初始化COM线程
-                pythoncom.CoInitialize()
-                
-                # 添加超时机制和更好的资源管理
-                word = None
-                doc = None
+            # 在UOS系统中使用WPS命令行转换
+            if os.name == 'posix':  # Linux/UOS系统
                 try:
-                    # 优先尝试WPS
-                    try:
-                        word = win32com.client.Dispatch("KWPS.Application")
-                        print("使用WPS进行转换")
-                    except:
-                        # 如果WPS不可用，尝试使用Microsoft Word
-                        try:
-                            word = win32com.client.Dispatch("Word.Application")
-                            print("使用Microsoft Word进行转换")
-                        except:
-                            raise Exception("未找到可用的Word处理程序（WPS或Microsoft Word）")
-                    
-                    word.Visible = False  # 正确的属性名（大写V）
-                    word.DisplayAlerts = False  # 禁用警告对话框
-                    
-                    # 打开文档（以只读模式）
-                    doc = word.Documents.Open(os.path.abspath(docx_path), ReadOnly=True)
-                    
-                    # 保存为PDF
-                    doc.SaveAs(os.path.abspath(pdf_file), FileFormat=17)  # 17表示PDF格式
-                    
-                    conversion_success = True
-                except Exception as com_error:
-                    error_msg = f"win32com.client转换过程中出错: {str(com_error)}"
-                    print(error_msg)
-                    raise com_error
-                finally:
-                    # 确保正确释放资源
-                    try:
-                        if doc:
-                            doc.Close(SaveChanges=0)  # 0表示不保存更改直接关闭
-                    except:
-                        pass
-                    try:
-                        if word:
-                            word.Quit()
-                    except:
-                        pass
-                    
-                    # 清理COM资源
-                    pythoncom.CoUninitialize()
-                
-                if conversion_success and os.path.exists(pdf_file):
-                    pdf_files.append(pdf_file)
-                    
-                    status_msg = f"已转换为PDF: {name}.pdf"
+                    status_msg = f"正在转换: {base_name}"
                     if status_callback:
                         status_callback(status_msg)
-                    print(f"已使用win32com.client转换为PDF: {pdf_file}")
+                    print(f"正在尝试使用WPS命令行转换: {docx_path}")
+                    
+                    # 使用WPS命令行转换文档
+                    import subprocess
+                    # 尝试使用WPS文字处理命令
+                    try:
+                        result = subprocess.run([
+                            'wps', 
+                            '--convert-to', 'pdf', 
+                            os.path.abspath(docx_path),
+                            '--outdir', os.path.abspath(pdf_dir)
+                        ], capture_output=True, text=True, timeout=60)
+                    except FileNotFoundError:
+                        # 如果wps命令不存在，尝试使用libreoffice
+                        result = subprocess.run([
+                            'libreoffice',
+                            '--headless',
+                            '--convert-to', 'pdf',
+                            '--outdir', os.path.abspath(pdf_dir),
+                            os.path.abspath(docx_path)
+                        ], capture_output=True, text=True, timeout=60)
+                    
+                    if result.returncode == 0 and os.path.exists(pdf_file):
+                        pdf_files.append(pdf_file)
+                        
+                        status_msg = f"已转换为PDF: {name}.pdf"
+                        if status_callback:
+                            status_callback(status_msg)
+                        print(f"已使用命令行转换为PDF: {pdf_file}")
+                        
+                        # 更新进度窗口状态
+                        if self.progress_callback:
+                            self.progress_callback(base_name, "completed")
+                        conversion_success = True
+                    else:
+                        raise Exception(f"命令行转换失败: {result.stderr}")
+                        
+                except Exception as e:
+                    error_msg = f"使用命令行转换PDF时出错: {str(e)}"
+                    print(error_msg)
                     
                     # 更新进度窗口状态
                     if self.progress_callback:
-                        self.progress_callback(base_name, "completed")
-                else:
-                    raise Exception("win32com.client未能生成PDF文件")
-                
-                conversion_success = True
-            except Exception as e1:
-                error_msg = f"使用win32com.client转换PDF时出错: {str(e1)}"
-                print(error_msg)
-                
-                # 更新进度窗口状态
-                if self.progress_callback:
-                    self.progress_callback(base_name, "failed")
+                        self.progress_callback(base_name, "failed")
+            else:
+                # 方法1: 使用win32com.client方法（首选，支持WPS和Office）
+                if WIN32_AVAILABLE:
+                    try:
+                        status_msg = f"正在转换: {base_name}"
+                        if status_callback:
+                            status_callback(status_msg)
+                        print(f"正在尝试使用win32com.client转换: {docx_path}")
+                        
+                        import pythoncom
+                        
+                        # 初始化COM线程
+                        pythoncom.CoInitialize()
+                        
+                        # 添加超时机制和更好的资源管理
+                        word = None
+                        doc = None
+                        try:
+                            # 优先尝试WPS
+                            try:
+                                word = win32com.client.Dispatch("KWPS.Application")
+                                print("使用WPS进行转换")
+                            except:
+                                # 如果WPS不可用，尝试使用Microsoft Word
+                                try:
+                                    word = win32com.client.Dispatch("Word.Application")
+                                    print("使用Microsoft Word进行转换")
+                                except:
+                                    raise Exception("未找到可用的Word处理程序（WPS或Microsoft Word）")
+                            
+                            word.Visible = False  # 正确的属性名（大写V）
+                            word.DisplayAlerts = False  # 禁用警告对话框
+                            
+                            # 打开文档（以只读模式）
+                            doc = word.Documents.Open(os.path.abspath(docx_path), ReadOnly=True)
+                            
+                            # 保存为PDF
+                            doc.SaveAs(os.path.abspath(pdf_file), FileFormat=17)  # 17表示PDF格式
+                            
+                            conversion_success = True
+                        except Exception as com_error:
+                            error_msg = f"win32com.client转换过程中出错: {str(com_error)}"
+                            print(error_msg)
+                            raise com_error
+                        finally:
+                            # 确保正确释放资源
+                            try:
+                                if doc:
+                                    doc.Close(SaveChanges=0)  # 0表示不保存更改直接关闭
+                            except:
+                                pass
+                            try:
+                                if word:
+                                    word.Quit()
+                            except:
+                                pass
+                            
+                            # 清理COM资源
+                            pythoncom.CoUninitialize()
+                        
+                        if conversion_success and os.path.exists(pdf_file):
+                            pdf_files.append(pdf_file)
+                            
+                            status_msg = f"已转换为PDF: {name}.pdf"
+                            if status_callback:
+                                status_callback(status_msg)
+                            print(f"已使用win32com.client转换为PDF: {pdf_file}")
+                            
+                            # 更新进度窗口状态
+                            if self.progress_callback:
+                                self.progress_callback(base_name, "completed")
+                        else:
+                            raise Exception("win32com.client未能生成PDF文件")
+                        
+                        conversion_success = True
+                    except Exception as e1:
+                        error_msg = f"使用win32com.client转换PDF时出错: {str(e1)}"
+                        print(error_msg)
+                        
+                        # 更新进度窗口状态
+                        if self.progress_callback:
+                            self.progress_callback(base_name, "failed")
             
             # 方法2: 使用docx2pdf库作为备选方案
             if not conversion_success:
@@ -417,87 +477,138 @@ class DocumentProcessor:
             # 尝试多种方法转换为PDF
             conversion_success = False
             
-            # 方法1: 使用win32com.client方法（首选，支持WPS和Office）
-            try:
-                status_msg = f"正在转换: {base_name}"
-                if status_callback:
-                    status_callback(status_msg)
-                print(f"正在尝试使用win32com.client转换Excel: {xlsx_path}")
-                
-                import win32com.client
-                import pythoncom
-                
-                # 初始化COM线程
-                pythoncom.CoInitialize()
-                
-                # 添加更好的资源管理
-                excel = None
-                workbook = None
+            # 在UOS系统中使用ET命令行转换
+            if os.name == 'posix':  # Linux/UOS系统
                 try:
-                    # 优先尝试WPS
-                    try:
-                        excel = win32com.client.Dispatch("KET.Application")
-                        print("使用WPS表格进行转换")
-                    except:
-                        # 如果WPS不可用，尝试使用Microsoft Excel
-                        try:
-                            excel = win32com.client.Dispatch("Excel.Application")
-                            print("使用Microsoft Excel进行转换")
-                        except:
-                            raise Exception("未找到可用的Excel处理程序（WPS表格或Microsoft Excel）")
-                    
-                    excel.Visible = False  # 正确的属性名（大写V）
-                    excel.DisplayAlerts = False  # 禁用警告对话框
-                    
-                    # 打开工作簿（以只读模式）
-                    workbook = excel.Workbooks.Open(os.path.abspath(xlsx_path), ReadOnly=True)
-                    
-                    # 导出为PDF
-                    workbook.ExportAsFixedFormat(0, os.path.abspath(pdf_file))  # 0表示PDF格式
-                    
-                    conversion_success = True
-                except Exception as com_error:
-                    error_msg = f"win32com.client转换Excel过程中出错: {str(com_error)}"
-                    print(error_msg)
-                    raise com_error
-                finally:
-                    # 确保正确释放资源
-                    try:
-                        if workbook:
-                            workbook.Close(SaveChanges=0)  # 0表示不保存更改直接关闭
-                    except:
-                        pass
-                    try:
-                        if excel:
-                            excel.Quit()
-                    except:
-                        pass
-                    
-                    # 清理COM资源
-                    pythoncom.CoUninitialize()
-                
-                if conversion_success and os.path.exists(pdf_file):
-                    pdf_files.append(pdf_file)
-                    
-                    status_msg = f"已转换为PDF: {name}.pdf"
+                    status_msg = f"正在转换: {base_name}"
                     if status_callback:
                         status_callback(status_msg)
-                    print(f"已使用win32com.client转换Excel为PDF: {pdf_file}")
+                    print(f"正在尝试使用ET命令行转换Excel: {xlsx_path}")
+                    
+                    # 使用ET命令行转换电子表格
+                    import subprocess
+                    # 尝试使用ET电子表格处理命令
+                    try:
+                        result = subprocess.run([
+                            'et', 
+                            '--convert-to', 'pdf', 
+                            os.path.abspath(xlsx_path),
+                            '--outdir', os.path.abspath(pdf_dir)
+                        ], capture_output=True, text=True, timeout=60)
+                    except FileNotFoundError:
+                        # 如果et命令不存在，尝试使用libreoffice
+                        result = subprocess.run([
+                            'libreoffice',
+                            '--headless',
+                            '--convert-to', 'pdf',
+                            '--outdir', os.path.abspath(pdf_dir),
+                            os.path.abspath(xlsx_path)
+                        ], capture_output=True, text=True, timeout=60)
+                    
+                    if result.returncode == 0 and os.path.exists(pdf_file):
+                        pdf_files.append(pdf_file)
+                        
+                        status_msg = f"已转换为PDF: {name}.pdf"
+                        if status_callback:
+                            status_callback(status_msg)
+                        print(f"已使用命令行转换Excel为PDF: {pdf_file}")
+                        
+                        # 更新进度窗口状态
+                        if self.progress_callback:
+                            self.progress_callback(base_name, "completed")
+                        conversion_success = True
+                    else:
+                        raise Exception(f"命令行转换失败: {result.stderr}")
+                        
+                except Exception as e:
+                    error_msg = f"使用命令行转换Excel为PDF时出错: {str(e)}"
+                    print(error_msg)
                     
                     # 更新进度窗口状态
                     if self.progress_callback:
-                        self.progress_callback(base_name, "completed")
-                else:
-                    raise Exception("win32com.client未能生成PDF文件")
-                
-                conversion_success = True
-            except Exception as e1:
-                error_msg = f"使用win32com.client转换Excel为PDF时出错: {str(e1)}"
-                print(error_msg)
-                
-                # 更新进度窗口状态
-                if self.progress_callback:
-                    self.progress_callback(base_name, "failed")
+                        self.progress_callback(base_name, "failed")
+            else:
+                # 方法1: 使用win32com.client方法（首选，支持WPS和Office）
+                if WIN32_AVAILABLE:
+                    try:
+                        status_msg = f"正在转换: {base_name}"
+                        if status_callback:
+                            status_callback(status_msg)
+                        print(f"正在尝试使用win32com.client转换Excel: {xlsx_path}")
+                        
+                        import pythoncom
+                        
+                        # 初始化COM线程
+                        pythoncom.CoInitialize()
+                        
+                        # 添加更好的资源管理
+                        excel = None
+                        workbook = None
+                        try:
+                            # 优先尝试WPS
+                            try:
+                                excel = win32com.client.Dispatch("KET.Application")
+                                print("使用WPS表格进行转换")
+                            except:
+                                # 如果WPS不可用，尝试使用Microsoft Excel
+                                try:
+                                    excel = win32com.client.Dispatch("Excel.Application")
+                                    print("使用Microsoft Excel进行转换")
+                                except:
+                                    raise Exception("未找到可用的Excel处理程序（WPS表格或Microsoft Excel）")
+                            
+                            excel.Visible = False  # 正确的属性名（大写V）
+                            excel.DisplayAlerts = False  # 禁用警告对话框
+                            
+                            # 打开工作簿（以只读模式）
+                            workbook = excel.Workbooks.Open(os.path.abspath(xlsx_path), ReadOnly=True)
+                            
+                            # 导出为PDF
+                            workbook.ExportAsFixedFormat(0, os.path.abspath(pdf_file))  # 0表示PDF格式
+                            
+                            conversion_success = True
+                        except Exception as com_error:
+                            error_msg = f"win32com.client转换Excel过程中出错: {str(com_error)}"
+                            print(error_msg)
+                            raise com_error
+                        finally:
+                            # 确保正确释放资源
+                            try:
+                                if workbook:
+                                    workbook.Close(SaveChanges=0)  # 0表示不保存更改直接关闭
+                            except:
+                                pass
+                            try:
+                                if excel:
+                                    excel.Quit()
+                            except:
+                                pass
+                            
+                            # 清理COM资源
+                            pythoncom.CoUninitialize()
+                        
+                        if conversion_success and os.path.exists(pdf_file):
+                            pdf_files.append(pdf_file)
+                            
+                            status_msg = f"已转换为PDF: {name}.pdf"
+                            if status_callback:
+                                status_callback(status_msg)
+                            print(f"已使用win32com.client转换Excel为PDF: {pdf_file}")
+                            
+                            # 更新进度窗口状态
+                            if self.progress_callback:
+                                self.progress_callback(base_name, "completed")
+                        else:
+                            raise Exception("win32com.client未能生成PDF文件")
+                        
+                        conversion_success = True
+                    except Exception as e1:
+                        error_msg = f"使用win32com.client转换Excel为PDF时出错: {str(e1)}"
+                        print(error_msg)
+                        
+                        # 更新进度窗口状态
+                        if self.progress_callback:
+                            self.progress_callback(base_name, "failed")
             
             # 方法2: 使用docx2pdf库作为备选方案
             if not conversion_success:
@@ -1389,187 +1500,321 @@ class DocumentProcessorUI:
         
         self.update_status("开始转换WPS/ET/XLS/DOC文件...")
         
-        # 尝试使用win32com.client进行转换
-        wps_app = None
-        try:
-            import win32com.client
-            import pythoncom
-            import threading
-            import time
-            
-            # 初始化COM线程
-            pythoncom.CoInitialize()
-            
-            success_count = 0
-            # 分别处理文档文件和表格文件
-            doc_files = [f for f in files_to_convert if os.path.splitext(f)[1].lower() in ['.wps', '.wpt', '.doc']]
-            et_xls_files = [f for f in files_to_convert if os.path.splitext(f)[1].lower() in ['.et', '.xls']]
-            
-            # 处理文档文件 (WPS/DOC -> DOCX)
-            if doc_files:
-                # 创建WPS文字应用程序对象
-                try:
-                    wps_app = win32com.client.Dispatch("KWPS.Application")
-                except:
-                    # 如果KWPS不可用，尝试使用WPS
-                    try:
-                        wps_app = win32com.client.Dispatch("Ket.Application")
-                    except:
-                        # 如果WPS也不可用，尝试使用Microsoft Word
-                        try:
-                            wps_app = win32com.client.Dispatch("Word.Application")
-                        except:
-                            self.log_and_status("未找到可用的WPS或Word应用程序来处理文档文件")
-                            wps_app = None
+        # 在UOS系统中使用命令行转换
+        if os.name == 'posix':  # Linux/UOS系统
+            try:
+                success_count = 0
                 
-                if wps_app:
-                    wps_app.Visible = False
-                    wps_app.DisplayAlerts = False
-                    
+                # 分别处理文档文件和表格文件
+                doc_files = [f for f in files_to_convert if os.path.splitext(f)[1].lower() in ['.wps', '.wpt', '.doc']]
+                et_xls_files = [f for f in files_to_convert if os.path.splitext(f)[1].lower() in ['.et', '.xls']]
+                
+                # 处理文档文件 (WPS/DOC -> DOCX)
+                if doc_files:
                     for file_path in doc_files:
                         try:
-                            # 获取文件扩展名
-                            file_ext = os.path.splitext(file_path)[1].lower()
-                            
-                            # 打开文件
-                            doc = wps_app.Documents.Open(file_path)
-                            
-                            # 生成DOCX文件名
+                            # 使用命令行转换文档
+                            import subprocess
                             docx_file = os.path.splitext(file_path)[0] + ".docx"
                             
-                            # 另存为DOCX格式 (12是DOCX格式的代码)
-                            doc.SaveAs(docx_file, 12)
+                            # 尝试使用WPS文字处理命令转换为DOCX
+                            try:
+                                result = subprocess.run([
+                                    'wps', 
+                                    '--convert-to', 'docx', 
+                                    os.path.abspath(file_path),
+                                    '--outdir', os.path.dirname(os.path.abspath(file_path))
+                                ], capture_output=True, text=True, timeout=60)
+                            except FileNotFoundError:
+                                # 如果wps命令不存在，尝试使用libreoffice
+                                result = subprocess.run([
+                                    'libreoffice',
+                                    '--headless',
+                                    '--convert-to', 'docx',
+                                    '--outdir', os.path.dirname(os.path.abspath(file_path)),
+                                    os.path.abspath(file_path)
+                                ], capture_output=True, text=True, timeout=60)
                             
-                            # 关闭文档
-                            doc.Close()
-                            
-                            success_count += 1
-                            file_type = "WPS" if file_ext in ['.wps', '.wpt'] else "DOC"
-                            self.update_status(f"已转换 {file_type} 文件: {os.path.basename(file_path)} -> {os.path.basename(docx_file)}")
+                            if result.returncode == 0 and os.path.exists(docx_file):
+                                success_count += 1
+                                file_ext = os.path.splitext(file_path)[1].lower()
+                                file_type = "WPS" if file_ext in ['.wps', '.wpt'] else "DOC"
+                                self.update_status(f"已转换 {file_type} 文件: {os.path.basename(file_path)} -> {os.path.basename(docx_file)}")
+                            else:
+                                file_type = "WPS" if os.path.splitext(file_path)[1].lower() in ['.wps', '.wpt'] else "DOC"
+                                self.log_and_status(f"转换失败 {file_type} 文件 {os.path.basename(file_path)}: {result.stderr}")
                         except Exception as e:
                             file_type = "WPS" if os.path.splitext(file_path)[1].lower() in ['.wps', '.wpt'] else "DOC"
                             self.log_and_status(f"转换失败 {file_type} 文件 {os.path.basename(file_path)}: {str(e)}")
+                
+                # 处理电子表格文件 (ET/XLS -> XLSX)
+                if et_xls_files:
+                    for file_path in et_xls_files:
+                        try:
+                            # 使用命令行转换电子表格
+                            import subprocess
+                            xlsx_file = os.path.splitext(file_path)[0] + ".xlsx"
+                            
+                            # 尝试使用ET电子表格处理命令转换为XLSX
+                            try:
+                                result = subprocess.run([
+                                    'et', 
+                                    '--convert-to', 'xlsx', 
+                                    os.path.abspath(file_path),
+                                    '--outdir', os.path.dirname(os.path.abspath(file_path))
+                                ], capture_output=True, text=True, timeout=60)
+                            except FileNotFoundError:
+                                # 如果et命令不存在，尝试使用libreoffice
+                                result = subprocess.run([
+                                    'libreoffice',
+                                    '--headless',
+                                    '--convert-to', 'xlsx',
+                                    '--outdir', os.path.dirname(os.path.abspath(file_path)),
+                                    os.path.abspath(file_path)
+                                ], capture_output=True, text=True, timeout=60)
+                            
+                            if result.returncode == 0 and os.path.exists(xlsx_file):
+                                success_count += 1
+                                file_ext = os.path.splitext(file_path)[1].lower()
+                                file_type = "ET" if file_ext == '.et' else "XLS"
+                                self.update_status(f"已转换 {file_type} 文件: {os.path.basename(file_path)} -> {os.path.basename(xlsx_file)}")
+                            else:
+                                file_type = "ET" if os.path.splitext(file_path)[1].lower() == '.et' else "XLS"
+                                self.log_and_status(f"转换失败 {file_type} 文件 {os.path.basename(file_path)}: {result.stderr}")
+                        except Exception as e:
+                            file_type = "ET" if os.path.splitext(file_path)[1].lower() == '.et' else "XLS"
+                            self.log_and_status(f"转换失败 {file_type} 文件 {os.path.basename(file_path)}: {str(e)}")
+                
+                self.log_and_status(f"转换完成: 成功 {success_count}/{len(files_to_convert)} 个文件")
+                
+                # 询问用户是否删除源文件
+                if success_count > 0:
+                    try:
+                        from tkinter import messagebox
+                        result = messagebox.askyesno("转换完成", "是否删除已成功转换的源文件？\n(选择\"否\"将把源文件移动到\"源文件\"文件夹中)")
+                        if result:
+                            deleted_count = 0
+                            for file_path in files_to_convert:
+                                try:
+                                    os.remove(file_path)
+                                    deleted_count += 1
+                                    self.update_status(f"已删除源文件: {os.path.basename(file_path)}")
+                                except Exception as e:
+                                    self.log_and_status(f"删除源文件 {os.path.basename(file_path)} 失败: {str(e)}")
+                            self.log_and_status(f"已删除 {deleted_count}/{len(files_to_convert)} 个源文件")
+                        else:
+                            # 用户选择"否"，将源文件移动到"源文件"文件夹
+                            source_folder = os.path.join(os.path.dirname(files_to_convert[0]), "源文件")
+                            if not os.path.exists(source_folder):
+                                os.makedirs(source_folder)
+                            
+                            moved_count = 0
+                            for file_path in files_to_convert:
+                                try:
+                                    filename = os.path.basename(file_path)
+                                    destination = os.path.join(source_folder, filename)
+                                    # 如果目标文件已存在，添加序号
+                                    counter = 1
+                                    base_name, ext = os.path.splitext(filename)
+                                    while os.path.exists(destination):
+                                        new_filename = f"{base_name}_{counter}{ext}"
+                                        destination = os.path.join(source_folder, new_filename)
+                                        counter += 1
+                                    
+                                    os.rename(file_path, destination)
+                                    moved_count += 1
+                                    self.update_status(f"已移动源文件到\"源文件\"文件夹: {filename}")
+                                except Exception as e:
+                                    self.log_and_status(f"移动源文件 {os.path.basename(file_path)} 失败: {str(e)}")
+                            self.log_and_status(f"已移动 {moved_count}/{len(files_to_convert)} 个源文件到\"源文件\"文件夹")
+                    except Exception as e:
+                        self.log_and_status(f"处理删除/移动操作时出错: {str(e)}")
+                        
+            except Exception as e:
+                self.log_and_status(f"转换过程中出错: {str(e)}")
+        else:
+            # 原有的Windows转换逻辑
+            # 尝试使用win32com.client进行转换
+            wps_app = None
+            try:
+                import win32com.client
+                import pythoncom
+                import threading
+                import time
+                
+                # 初始化COM线程
+                pythoncom.CoInitialize()
+                
+                success_count = 0
+                # 分别处理文档文件和表格文件
+                doc_files = [f for f in files_to_convert if os.path.splitext(f)[1].lower() in ['.wps', '.wpt', '.doc']]
+                et_xls_files = [f for f in files_to_convert if os.path.splitext(f)[1].lower() in ['.et', '.xls']]
+                
+                # 处理文档文件 (WPS/DOC -> DOCX)
+                if doc_files:
+                    # 创建WPS文字应用程序对象
+                    try:
+                        wps_app = win32com.client.Dispatch("KWPS.Application")
+                    except:
+                        # 如果KWPS不可用，尝试使用WPS
+                        try:
+                            wps_app = win32com.client.Dispatch("Ket.Application")
+                        except:
+                            # 如果WPS也不可用，尝试使用Microsoft Word
+                            try:
+                                wps_app = win32com.client.Dispatch("Word.Application")
+                            except:
+                                self.log_and_status("未找到可用的WPS或Word应用程序来处理文档文件")
+                                wps_app = None
                     
-                    # 关闭WPS应用程序
+                    if wps_app:
+                        wps_app.Visible = False
+                        wps_app.DisplayAlerts = False
+                        
+                        for file_path in doc_files:
+                            try:
+                                # 获取文件扩展名
+                                file_ext = os.path.splitext(file_path)[1].lower()
+                                
+                                # 打开文件
+                                doc = wps_app.Documents.Open(file_path)
+                                
+                                # 生成DOCX文件名
+                                docx_file = os.path.splitext(file_path)[0] + ".docx"
+                                
+                                # 另存为DOCX格式 (12是DOCX格式的代码)
+                                doc.SaveAs(docx_file, 12)
+                                
+                                # 关闭文档
+                                doc.Close()
+                                
+                                success_count += 1
+                                file_type = "WPS" if file_ext in ['.wps', '.wpt'] else "DOC"
+                                self.update_status(f"已转换 {file_type} 文件: {os.path.basename(file_path)} -> {os.path.basename(docx_file)}")
+                            except Exception as e:
+                                file_type = "WPS" if os.path.splitext(file_path)[1].lower() in ['.wps', '.wpt'] else "DOC"
+                                self.log_and_status(f"转换失败 {file_type} 文件 {os.path.basename(file_path)}: {str(e)}")
+                        
+                        # 关闭WPS应用程序
+                        try:
+                            wps_app.Quit()
+                        except:
+                            pass
+                        wps_app = None
+                
+                # 处理电子表格文件 (ET/XLS -> XLSX)
+                if et_xls_files:
+                    # 创建WPS表格应用程序对象
+                    try:
+                        et_app = win32com.client.Dispatch("KET.Application")
+                    except:
+                        # 如果KET不可用，尝试使用Microsoft Excel
+                        try:
+                            et_app = win32com.client.Dispatch("Excel.Application")
+                        except:
+                            self.log_and_status("未找到可用的WPS表格或Excel应用程序来处理电子表格文件")
+                            et_app = None
+                    
+                    if et_app:
+                        et_app.Visible = False
+                        et_app.DisplayAlerts = False
+                        
+                        for file_path in et_xls_files:
+                            try:
+                                # 获取文件扩展名
+                                file_ext = os.path.splitext(file_path)[1].lower()
+                                
+                                # 打开文件（添加超时和错误处理）
+                                try:
+                                    workbook = et_app.Workbooks.Open(file_path)
+                                    
+                                    # 生成XLSX文件名
+                                    xlsx_file = os.path.splitext(file_path)[0] + ".xlsx"
+                                    
+                                    # 另存为XLSX格式 (51是XLSX格式的代码)
+                                    workbook.SaveAs(xlsx_file, 51)
+                                    
+                                    # 关闭工作簿
+                                    workbook.Close()
+                                    
+                                    success_count += 1
+                                    file_type = "ET" if file_ext == '.et' else "XLS"
+                                    self.update_status(f"已转换 {file_type} 文件: {os.path.basename(file_path)} -> {os.path.basename(xlsx_file)}")
+                                except Exception as open_error:
+                                    file_type = "ET" if os.path.splitext(file_path)[1].lower() == '.et' else "XLS"
+                                    self.log_and_status(f"打开或转换失败 {file_type} 文件 {os.path.basename(file_path)}: {str(open_error)}")
+                            except Exception as e:
+                                file_type = "ET" if os.path.splitext(file_path)[1].lower() == '.et' else "XLS"
+                                self.log_and_status(f"转换失败 {file_type} 文件 {os.path.basename(file_path)}: {str(e)}")
+                        
+                        # 关闭ET应用程序
+                        try:
+                            et_app.Quit()
+                        except:
+                            pass
+                
+                self.log_and_status(f"转换完成: 成功 {success_count}/{len(files_to_convert)} 个文件")
+                
+                # 询问用户是否删除源文件
+                if success_count > 0:
+                    try:
+                        from tkinter import messagebox
+                        result = messagebox.askyesno("转换完成", "是否删除已成功转换的源文件？\n(选择\"否\"将把源文件移动到\"源文件\"文件夹中)")
+                        if result:
+                            deleted_count = 0
+                            for file_path in files_to_convert:
+                                try:
+                                    os.remove(file_path)
+                                    deleted_count += 1
+                                    self.update_status(f"已删除源文件: {os.path.basename(file_path)}")
+                                except Exception as e:
+                                    self.log_and_status(f"删除源文件 {os.path.basename(file_path)} 失败: {str(e)}")
+                            self.log_and_status(f"已删除 {deleted_count}/{len(files_to_convert)} 个源文件")
+                        else:
+                            # 用户选择"否"，将源文件移动到"源文件"文件夹
+                            source_folder = os.path.join(os.path.dirname(files_to_convert[0]), "源文件")
+                            if not os.path.exists(source_folder):
+                                os.makedirs(source_folder)
+                            
+                            moved_count = 0
+                            for file_path in files_to_convert:
+                                try:
+                                    filename = os.path.basename(file_path)
+                                    destination = os.path.join(source_folder, filename)
+                                    # 如果目标文件已存在，添加序号
+                                    counter = 1
+                                    base_name, ext = os.path.splitext(filename)
+                                    while os.path.exists(destination):
+                                        new_filename = f"{base_name}_{counter}{ext}"
+                                        destination = os.path.join(source_folder, new_filename)
+                                        counter += 1
+                                    
+                                    os.rename(file_path, destination)
+                                    moved_count += 1
+                                    self.update_status(f"已移动源文件到\"源文件\"文件夹: {filename}")
+                                except Exception as e:
+                                    self.log_and_status(f"移动源文件 {os.path.basename(file_path)} 失败: {str(e)}")
+                            self.log_and_status(f"已移动 {moved_count}/{len(files_to_convert)} 个源文件到\"源文件\"文件夹")
+                    except Exception as e:
+                        self.log_and_status(f"处理删除/移动操作时出错: {str(e)}")
+                
+            except ImportError:
+                self.log_and_status("缺少必要的库: 请安装pywin32库")
+            except Exception as e:
+                self.log_and_status(f"转换过程中出错: {str(e)}")
+            finally:
+                # 确保WPS应用程序被正确关闭
+                if wps_app:
                     try:
                         wps_app.Quit()
                     except:
                         pass
-                    wps_app = None
-            
-            # 处理电子表格文件 (ET/XLS -> XLSX)
-            if et_xls_files:
-                # 创建WPS表格应用程序对象
-                try:
-                    et_app = win32com.client.Dispatch("KET.Application")
-                except:
-                    # 如果KET不可用，尝试使用Microsoft Excel
-                    try:
-                        et_app = win32com.client.Dispatch("Excel.Application")
-                    except:
-                        self.log_and_status("未找到可用的WPS表格或Excel应用程序来处理电子表格文件")
-                        et_app = None
                 
-                if et_app:
-                    et_app.Visible = False
-                    et_app.DisplayAlerts = False
-                    
-                    for file_path in et_xls_files:
-                        try:
-                            # 获取文件扩展名
-                            file_ext = os.path.splitext(file_path)[1].lower()
-                            
-                            # 打开文件（添加超时和错误处理）
-                            try:
-                                workbook = et_app.Workbooks.Open(file_path)
-                                
-                                # 生成XLSX文件名
-                                xlsx_file = os.path.splitext(file_path)[0] + ".xlsx"
-                                
-                                # 另存为XLSX格式 (51是XLSX格式的代码)
-                                workbook.SaveAs(xlsx_file, 51)
-                                
-                                # 关闭工作簿
-                                workbook.Close()
-                                
-                                success_count += 1
-                                file_type = "ET" if file_ext == '.et' else "XLS"
-                                self.update_status(f"已转换 {file_type} 文件: {os.path.basename(file_path)} -> {os.path.basename(xlsx_file)}")
-                            except Exception as open_error:
-                                file_type = "ET" if os.path.splitext(file_path)[1].lower() == '.et' else "XLS"
-                                self.log_and_status(f"打开或转换失败 {file_type} 文件 {os.path.basename(file_path)}: {str(open_error)}")
-                        except Exception as e:
-                            file_type = "ET" if os.path.splitext(file_path)[1].lower() == '.et' else "XLS"
-                            self.log_and_status(f"转换失败 {file_type} 文件 {os.path.basename(file_path)}: {str(e)}")
-                    
-                    # 关闭ET应用程序
-                    try:
-                        et_app.Quit()
-                    except:
-                        pass
-            
-            self.log_and_status(f"转换完成: 成功 {success_count}/{len(files_to_convert)} 个文件")
-            
-            # 询问用户是否删除源文件
-            if success_count > 0:
+                # 清理COM资源
                 try:
-                    from tkinter import messagebox
-                    result = messagebox.askyesno("转换完成", "是否删除已成功转换的源文件？\n(选择\"否\"将把源文件移动到\"源文件\"文件夹中)")
-                    if result:
-                        deleted_count = 0
-                        for file_path in files_to_convert:
-                            try:
-                                os.remove(file_path)
-                                deleted_count += 1
-                                self.update_status(f"已删除源文件: {os.path.basename(file_path)}")
-                            except Exception as e:
-                                self.log_and_status(f"删除源文件 {os.path.basename(file_path)} 失败: {str(e)}")
-                        self.log_and_status(f"已删除 {deleted_count}/{len(files_to_convert)} 个源文件")
-                    else:
-                        # 用户选择"否"，将源文件移动到"源文件"文件夹
-                        source_folder = os.path.join(os.path.dirname(files_to_convert[0]), "源文件")
-                        if not os.path.exists(source_folder):
-                            os.makedirs(source_folder)
-                        
-                        moved_count = 0
-                        for file_path in files_to_convert:
-                            try:
-                                filename = os.path.basename(file_path)
-                                destination = os.path.join(source_folder, filename)
-                                # 如果目标文件已存在，添加序号
-                                counter = 1
-                                base_name, ext = os.path.splitext(filename)
-                                while os.path.exists(destination):
-                                    new_filename = f"{base_name}_{counter}{ext}"
-                                    destination = os.path.join(source_folder, new_filename)
-                                    counter += 1
-                                
-                                os.rename(file_path, destination)
-                                moved_count += 1
-                                self.update_status(f"已移动源文件到\"源文件\"文件夹: {filename}")
-                            except Exception as e:
-                                self.log_and_status(f"移动源文件 {os.path.basename(file_path)} 失败: {str(e)}")
-                        self.log_and_status(f"已移动 {moved_count}/{len(files_to_convert)} 个源文件到\"源文件\"文件夹")
-                except Exception as e:
-                    self.log_and_status(f"处理删除/移动操作时出错: {str(e)}")
-            
-        except ImportError:
-            self.log_and_status("缺少必要的库: 请安装pywin32库")
-        except Exception as e:
-            self.log_and_status(f"转换过程中出错: {str(e)}")
-        finally:
-            # 确保WPS应用程序被正确关闭
-            if wps_app:
-                try:
-                    wps_app.Quit()
+                    pythoncom.CoUninitialize()
                 except:
                     pass
-            
-            # 清理COM资源
-            try:
-                pythoncom.CoUninitialize()
-            except:
-                pass
 
     def select_template_file(self):
         """
@@ -1674,13 +1919,14 @@ class DocumentProcessorUI:
             return
         
         try:
-            import win32com.client
-            
-            # 在文档的光标位置插入占位符
-            selection = self.word_app.Selection
-            selection.TypeText(f"{{{placeholder}}}")
-            
-            print(f"已将占位符 {{{placeholder}}} 插入到文档")
+            if WIN32_AVAILABLE:
+                # 在文档的光标位置插入占位符
+                selection = self.word_app.Selection
+                selection.TypeText(f"{{{placeholder}}}")
+                
+                print(f"已将占位符 {{{placeholder}}} 插入到文档")
+            else:
+                print("win32com.client 模块不可用，请安装 pywin32")
         except Exception as e:
             print(f"插入占位符时出错: {str(e)}")
             print("请确保文档已正确打开")
@@ -1711,42 +1957,6 @@ class DocumentProcessorUI:
         # 在另一个线程中执行占位符刷新操作
         import threading
         threading.Thread(target=self._refresh_placeholders_thread, daemon=True).start()
-
-    def edit_in_word(self):
-        """
-        在Word中编辑当前文档
-        """
-        if not hasattr(self, 'current_template_file') or not self.current_template_file:
-            print("请先选择一个Word文档")
-            return
-        
-        if not self.current_template_file.endswith('.docx'):
-            print("只能在Word中编辑.docx文件")
-            return
-        
-        try:
-            import win32com.client
-            import os
-            
-            # 获取文件的绝对路径
-            abs_path = os.path.abspath(self.current_template_file)
-            
-            # 启动Word应用程序
-            word = win32com.client.Dispatch("Word.Application")
-            word.Visible = True  # 显示Word应用程序
-            
-            # 打开文档
-            doc = word.Documents.Open(abs_path)
-            
-            print(f"已在Word中打开文档: {self.current_template_file}")
-            print("请在Word中进行编辑，关闭文档时会自动保存更改")
-            
-        except Exception as e:
-            print(f"在Word中编辑文档时出错: {str(e)}")
-            print("请确保：")
-            print("1. 已安装Microsoft Word")
-            print("2. 已安装pywin32库 (pip install pywin32)")
-            print("3. 以足够权限运行程序")
     
     
     def _refresh_placeholders_thread(self):
@@ -2416,65 +2626,6 @@ class DocumentProcessorUI:
         self.doc_info_text.delete(1.0, tk.END)
         self.doc_info_text.insert(1.0, "\n".join(info_lines))
         self.doc_info_text.config(state=tk.DISABLED)
-
-    def auto_open_document(self, file_path):
-        """
-        自动打开文档
-        :param file_path: 文件路径
-        """
-        try:
-            import win32com.client
-            import os
-            
-            # 获取文件的绝对路径
-            abs_path = os.path.abspath(file_path)
-            
-            # 根据文件扩展名确定应用程序
-            if file_path.endswith('.docx'):
-                # 尝试连接到正在运行的Word实例
-                try:
-                    word = win32com.client.GetActiveObject("Word.Application")
-                except:
-                    # 如果没有运行的Word实例，则启动新的实例
-                    word = win32com.client.Dispatch("Word.Application")
-                
-                word.Visible = True
-                doc = word.Documents.Open(abs_path)
-                print(f"已在Word中打开文档: {file_path}")
-                
-            elif file_path.endswith('.xlsx'):
-                # 尝试连接到正在运行的Excel实例
-                try:
-                    excel = win32com.client.GetActiveObject("Excel.Application")
-                except:
-                    # 如果没有运行的Excel实例，则启动新的实例
-                    excel = win32com.client.Dispatch("Excel.Application")
-                
-                excel.Visible = True
-                workbook = excel.Workbooks.Open(abs_path)
-                print(f"已在Excel中打开文档: {file_path}")
-                
-            else:
-                # 对于其他格式的文件，使用系统默认程序打开
-                try:
-                    import subprocess
-                    if os.name == 'nt':  # Windows系统
-                        os.startfile(abs_path)
-                    elif os.name == 'posix':  # macOS或Linux系统
-                        subprocess.call(['open', abs_path])  # macOS
-                except:
-                    try:
-                        subprocess.call(['xdg-open', abs_path])  # Linux
-                    except:
-                        print(f"无法自动打开文件: {file_path}")
-                        print("请手动打开该文件进行编辑")
-                
-                print(f"已尝试使用默认程序打开文档: {file_path}")
-                
-        except Exception as e:
-            # 如果自动打开失败，只打印错误信息，不中断程序流程
-            print(f"自动打开文档时出错: {str(e)}")
-            print("请手动打开文档进行编辑")
 
     def load_docx_content(self, file_path):
         """
