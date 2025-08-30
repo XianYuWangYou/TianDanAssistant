@@ -280,33 +280,23 @@ class DocumentProcessor:
             # 尝试多种方法转换为PDF
             conversion_success = False
             
-            # 在UOS系统中使用WPS命令行转换
+            # 在Linux/UOS系统中优先使用LibreOffice命令行转换
             if os.name == 'posix':  # Linux/UOS系统
                 try:
                     status_msg = f"正在转换: {base_name}"
                     if status_callback:
                         status_callback(status_msg)
-                    print(f"正在尝试使用WPS命令行转换: {docx_path}")
+                    print(f"正在尝试使用LibreOffice命令行转换: {docx_path}")
                     
-                    # 使用WPS命令行转换文档
+                    # 使用LibreOffice命令行转换文档
                     import subprocess
-                    # 尝试使用WPS文字处理命令
-                    try:
-                        result = subprocess.run([
-                            'wps', 
-                            '--convert-to', 'pdf', 
-                            os.path.abspath(docx_path),
-                            '--outdir', os.path.abspath(pdf_dir)
-                        ], capture_output=True, text=True, timeout=60)
-                    except FileNotFoundError:
-                        # 如果wps命令不存在，尝试使用libreoffice
-                        result = subprocess.run([
-                            'libreoffice',
-                            '--headless',
-                            '--convert-to', 'pdf',
-                            '--outdir', os.path.abspath(pdf_dir),
-                            os.path.abspath(docx_path)
-                        ], capture_output=True, text=True, timeout=60)
+                    result = subprocess.run([
+                        'libreoffice',
+                        '--headless',
+                        '--convert-to', 'pdf',
+                        '--outdir', os.path.abspath(pdf_dir),
+                        os.path.abspath(docx_path)
+                    ], capture_output=True, text=True, timeout=60)
                     
                     if result.returncode == 0 and os.path.exists(pdf_file):
                         pdf_files.append(pdf_file)
@@ -314,23 +304,24 @@ class DocumentProcessor:
                         status_msg = f"已转换为PDF: {name}.pdf"
                         if status_callback:
                             status_callback(status_msg)
-                        print(f"已使用命令行转换为PDF: {pdf_file}")
+                        print(f"已使用LibreOffice命令行转换为PDF: {pdf_file}")
                         
                         # 更新进度窗口状态
                         if self.progress_callback:
                             self.progress_callback(base_name, "completed")
                         conversion_success = True
                     else:
-                        raise Exception(f"命令行转换失败: {result.stderr}")
+                        raise Exception(f"LibreOffice命令行转换失败: {result.stderr}")
                         
                 except Exception as e:
-                    error_msg = f"使用命令行转换PDF时出错: {str(e)}"
+                    error_msg = f"使用LibreOffice命令行转换PDF时出错: {str(e)}"
                     print(error_msg)
                     
                     # 更新进度窗口状态
                     if self.progress_callback:
                         self.progress_callback(base_name, "failed")
             else:
+                # Windows系统使用原有方法
                 # 方法1: 使用win32com.client方法（首选，支持WPS和Office）
                 if WIN32_AVAILABLE:
                     try:
@@ -413,7 +404,7 @@ class DocumentProcessor:
                         if self.progress_callback:
                             self.progress_callback(base_name, "failed")
             
-            # 方法2: 使用docx2pdf库作为备选方案
+            # 方法2: 使用docx2pdf库作为备选方案（主要在Windows上使用）
             if not conversion_success:
                 try:
                     status_msg = f"正在转换: {base_name} (docx2pdf)"
@@ -477,33 +468,23 @@ class DocumentProcessor:
             # 尝试多种方法转换为PDF
             conversion_success = False
             
-            # 在UOS系统中使用ET命令行转换
+            # 在Linux/UOS系统中优先使用LibreOffice命令行转换
             if os.name == 'posix':  # Linux/UOS系统
                 try:
                     status_msg = f"正在转换: {base_name}"
                     if status_callback:
                         status_callback(status_msg)
-                    print(f"正在尝试使用ET命令行转换Excel: {xlsx_path}")
+                    print(f"正在尝试使用LibreOffice命令行转换Excel: {xlsx_path}")
                     
-                    # 使用ET命令行转换电子表格
+                    # 使用LibreOffice命令行转换电子表格
                     import subprocess
-                    # 尝试使用ET电子表格处理命令
-                    try:
-                        result = subprocess.run([
-                            'et', 
-                            '--convert-to', 'pdf', 
-                            os.path.abspath(xlsx_path),
-                            '--outdir', os.path.abspath(pdf_dir)
-                        ], capture_output=True, text=True, timeout=60)
-                    except FileNotFoundError:
-                        # 如果et命令不存在，尝试使用libreoffice
-                        result = subprocess.run([
-                            'libreoffice',
-                            '--headless',
-                            '--convert-to', 'pdf',
-                            '--outdir', os.path.abspath(pdf_dir),
-                            os.path.abspath(xlsx_path)
-                        ], capture_output=True, text=True, timeout=60)
+                    result = subprocess.run([
+                        'libreoffice',
+                        '--headless',
+                        '--convert-to', 'pdf',
+                        '--outdir', os.path.abspath(pdf_dir),
+                        os.path.abspath(xlsx_path)
+                    ], capture_output=True, text=True, timeout=60)
                     
                     if result.returncode == 0 and os.path.exists(pdf_file):
                         pdf_files.append(pdf_file)
@@ -511,23 +492,24 @@ class DocumentProcessor:
                         status_msg = f"已转换为PDF: {name}.pdf"
                         if status_callback:
                             status_callback(status_msg)
-                        print(f"已使用命令行转换Excel为PDF: {pdf_file}")
+                        print(f"已使用LibreOffice命令行转换Excel为PDF: {pdf_file}")
                         
                         # 更新进度窗口状态
                         if self.progress_callback:
                             self.progress_callback(base_name, "completed")
                         conversion_success = True
                     else:
-                        raise Exception(f"命令行转换失败: {result.stderr}")
+                        raise Exception(f"LibreOffice命令行转换失败: {result.stderr}")
                         
                 except Exception as e:
-                    error_msg = f"使用命令行转换Excel为PDF时出错: {str(e)}"
+                    error_msg = f"使用LibreOffice命令行转换Excel为PDF时出错: {str(e)}"
                     print(error_msg)
                     
                     # 更新进度窗口状态
                     if self.progress_callback:
                         self.progress_callback(base_name, "failed")
             else:
+                # Windows系统使用原有方法
                 # 方法1: 使用win32com.client方法（首选，支持WPS和Office）
                 if WIN32_AVAILABLE:
                     try:
@@ -610,7 +592,7 @@ class DocumentProcessor:
                         if self.progress_callback:
                             self.progress_callback(base_name, "failed")
             
-            # 方法2: 使用docx2pdf库作为备选方案
+            # 方法2: 使用docx2pdf库作为备选方案（主要在Windows上使用）
             if not conversion_success:
                 try:
                     status_msg = f"正在转换: {base_name} (docx2pdf)"
@@ -724,7 +706,7 @@ class DocumentProcessorUI:
         # 将窗口居中显示
         self.center_window()
         self.root.title("文档表格批量填写助手")
-        self.root.geometry("800x650")
+        self.root.geometry("900x650")
         self.root.resizable(False, False)
        
         self.processor = DocumentProcessor()
