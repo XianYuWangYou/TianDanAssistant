@@ -1,6 +1,5 @@
 # 忽略文件夹
 .lingma
-venv
 
 # 忽略备份目录
 backup/
