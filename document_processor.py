@@ -5,9 +5,8 @@ import threading
 from datetime import datetime
 from docx import Document
 import tkinter as tk
+import customtkinter as ctk
 from tkinter import filedialog, ttk
-
-# 直接导入所有需要的模块，确保PyInstaller能够正确打包
 import docx
 from openpyxl import Workbook, load_workbook
 from docx2pdf import convert
@@ -602,18 +601,16 @@ class DocumentProcessor:
             print(f"合并PDF时出错: {str(e)}")
             raise e
 
-
 class DocumentProcessorUI:
     def __init__(self, root):
         """
-        初始化用户界面
-        :param root: Tkinter根窗口
+        初始化文档处理器UI
+        :param root: 根窗口
         """
         self.root = root
-        # 将窗口居中显示
-        self.center_window()
         self.root.title("文档表格批量填写助手")
         self.root.geometry("800x650")
+        # 禁止窗口大小调整
         self.root.resizable(False, False)
        
         self.processor = DocumentProcessor()
@@ -874,31 +871,27 @@ class DocumentProcessorUI:
         """
 
         # 创建标签页控件
-        self.notebook = ttk.Notebook(self.root)
-        self.notebook.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        self.notebook = ctk.CTkTabview(self.root)
+        self.notebook.pack(fill="both", expand=True, padx=10, pady=10)
         
         # 绑定标签页切换事件
-        self.notebook.bind("<<NotebookTabChanged>>", self.on_tab_changed)
+        # self.notebook.bind("<<NotebookTabChanged>>", self.on_tab_changed)
         
         # 创建主操作标签页
-        self.main_frame = ttk.Frame(self.notebook)
-        self.notebook.add(self.main_frame, text="数据录入")
+        self.main_frame = self.notebook.add("数据录入")
         
         # 创建配置方案标签页
-        self.config_frame = ttk.Frame(self.notebook)
-        self.notebook.add(self.config_frame, text="配置文档组合")
+        self.config_frame = self.notebook.add("配置文档组合")
         
         # 创建模板制作标签页
-        self.template_maker_frame = ttk.Frame(self.notebook)
-        self.notebook.add(self.template_maker_frame, text="配置文档模板")
+        self.template_maker_frame = self.notebook.add("配置文档模板")
         
         # 创建选项标签页
-        self.options_frame = ttk.Frame(self.notebook)
-        self.notebook.add(self.options_frame, text="选项设置")
+        self.options_frame = self.notebook.add("选项设置")
         
         # 创建状态栏（提前创建，确保其他组件可以使用）
-        self.status_bar = ttk.Label(self.root, text="就绪", relief=tk.SUNKEN, anchor=tk.W)
-        self.status_bar.pack(side=tk.BOTTOM, fill=tk.X)
+        self.status_bar = ctk.CTkLabel(self.root, text="就绪", anchor="w")
+        self.status_bar.pack(side="bottom", fill="x")
         
         self.setup_main_tab()
         self.setup_config_tab()
@@ -2524,14 +2517,14 @@ class DocumentProcessorUI:
             self.doc_info_text.insert(1.0, error_info)
             self.doc_info_text.config(state=tk.DISABLED)
             print(f"加载Excel文件时出错: {str(e)}")
-    
+
     def setup_main_tab(self):
         """
         设置主操作标签页
         """
         # 主框架
-        main_frame = ttk.Frame(self.main_frame, padding="10")
-        main_frame.pack(fill=tk.BOTH, expand=True)
+        main_frame = ctk.CTkFrame(self.main_frame, corner_radius=10)
+        main_frame.pack(fill=ctk.BOTH, expand=True, padx=10, pady=10)
         
         # 配置网格权重
         main_frame.columnconfigure(0, weight=1)
@@ -2540,70 +2533,64 @@ class DocumentProcessorUI:
         main_frame.rowconfigure(1, weight=0)
         
         # 创建左右两栏框架
-        left_frame = ttk.LabelFrame(main_frame, text="方案选择", padding="10")
-        left_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), padx=(0, 5))
-        
-        right_frame = ttk.LabelFrame(main_frame, text="用户录入", padding="10")
-        right_frame.grid(row=0, column=1, sticky=(tk.W, tk.E, tk.N, tk.S), padx=(5, 0))
-        
-        # 左侧：方案列表
-        self.scheme_listbox_main = tk.Listbox(left_frame, height=15)
-        self.scheme_listbox_main.grid(row=0, column=0, columnspan=2, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(0, 10))
-        self.scheme_listbox_main.bind('<<ListboxSelect>>', self.on_scheme_select)
-        
+        left_frame = ctk.CTkFrame(main_frame, corner_radius=10)
+        left_frame.grid(row=0, column=0, sticky=(ctk.W, ctk.E, ctk.N, ctk.S), padx=(0, 5))
         left_frame.columnconfigure(0, weight=1)
-        left_frame.columnconfigure(1, weight=1)
-        left_frame.rowconfigure(0, weight=1)
+        left_frame.rowconfigure(1, weight=1)  # 为滚动框架留出空间
         
-        ttk.Button(left_frame, text="刷新方案列表", command=self.load_saved_schemes).grid(row=1, column=0, columnspan=2)
+        # 添加框架标题
+        left_title = ctk.CTkLabel(left_frame, text="方案选择", font=ctk.CTkFont(size=16, weight="bold"))
+        left_title.grid(row=0, column=0, pady=(10, 5), sticky=ctk.W)
+        
+        right_frame = ctk.CTkFrame(main_frame, corner_radius=10)
+        right_frame.grid(row=0, column=1, sticky=(ctk.W, ctk.E, ctk.N, ctk.S), padx=(5, 0))
+        right_frame.columnconfigure(0, weight=1)
+        right_frame.rowconfigure(1, weight=1)  # 为滚动框架留出空间
+        
+        # 添加框架标题
+        right_title = ctk.CTkLabel(right_frame, text="用户录入", font=ctk.CTkFont(size=16, weight="bold"))
+        right_title.grid(row=0, column=0, pady=(10, 5), sticky=ctk.W)
+        
+        # 左侧：方案列表（使用CTkScrollableFrame代替Listbox）
+        # 创建一个可滚动的框架来放置方案按钮
+        self.scheme_scrollable_frame = ctk.CTkScrollableFrame(left_frame, label_text="已保存方案")
+        self.scheme_scrollable_frame.grid(row=1, column=0, columnspan=2, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(0, 10))
+        
+        # 刷新方案列表按钮
+        refresh_button = ctk.CTkButton(left_frame, text="刷新方案列表", command=self.load_saved_schemes)
+        refresh_button.grid(row=2, column=0, columnspan=2, pady=5)
         
         # 右侧：用户录入区域
-        self.input_canvas = tk.Canvas(right_frame, height=200, relief=tk.SUNKEN, borderwidth=1)
-        self.input_scrollbar = ttk.Scrollbar(right_frame, orient="vertical", command=self.input_canvas.yview)
-        self.input_scrollable_frame = ttk.Frame(self.input_canvas)
-        
-        # 添加鼠标滚轮支持
-        def _on_mousewheel(event):
-            self.input_canvas.yview_scroll(int(-1*(event.delta/120)), "units")
-        
-        self.input_canvas.bind("<MouseWheel>", _on_mousewheel)
-        self.input_scrollable_frame.bind("<MouseWheel>", _on_mousewheel)
-        
-        self.input_scrollable_frame.bind(
-            "<Configure>",
-            lambda e: self.input_canvas.configure(
-                scrollregion=self.input_canvas.bbox("all")
-            )
-        )
-        
-        self.input_canvas.create_window((0, 0), window=self.input_scrollable_frame, anchor="nw")
-        self.input_canvas.configure(yscrollcommand=self.input_scrollbar.set)
-        
-        self.input_canvas.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
-        self.input_scrollbar.grid(row=0, column=1, sticky=(tk.N, tk.S))
+        self.input_scrollable_frame = ctk.CTkScrollableFrame(right_frame, label_text="输入字段")
+        self.input_scrollable_frame.grid(row=1, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), padx=10, pady=10)
+        self.input_scrollable_frame.columnconfigure(0, weight=1)
         
         # 添加保存按钮框架
-        save_button_frame = ttk.Frame(right_frame)
-        save_button_frame.grid(row=1, column=0, columnspan=2, pady=(5, 0), sticky=(tk.W, tk.E))
+        save_button_frame = ctk.CTkFrame(right_frame)
+        save_button_frame.grid(row=2, column=0, padx=10, pady=5, sticky="ew")
+        save_button_frame.columnconfigure(0, weight=1)
+        save_button_frame.columnconfigure(1, weight=1)
+        save_button_frame.columnconfigure(2, weight=1)
         
         # 修改为左右布局
         # Label和Combobox作为一个整体居左放置，按钮居中放置
         # 创建包含Label和Combobox的子框架，作为一个整体
-        history_frame = ttk.Frame(save_button_frame)
-        history_frame.grid(row=0, column=0, padx=(0, 5), pady=5, sticky=tk.W)
+        history_frame = ctk.CTkFrame(save_button_frame)
+        history_frame.grid(row=0, column=0, padx=(0, 5), pady=5, sticky="w")
         
-        ttk.Label(history_frame, text="历史记录:").pack(side=tk.LEFT)
-        self.history_combobox = ttk.Combobox(history_frame, width=20, state="disabled")
-        self.history_combobox.pack(side=tk.LEFT, padx=(5, 0))
+        history_label = ctk.CTkLabel(history_frame, text="历史记录:")
+        history_label.pack(side="left")
+        self.history_combobox = ctk.CTkComboBox(history_frame, width=200, state="disabled")
+        self.history_combobox.pack(side="left", padx=(5, 0))
         # 绑定选择事件
-        self.history_combobox.bind("<<ComboboxSelected>>", self.load_history_record)
+        # self.history_combobox.bind("<<ComboboxSelected>>", self.load_history_record)
         
         # 添加删除历史记录按钮
-        self.delete_history_button = ttk.Button(history_frame, text="删除记录", width=8, command=self.delete_history_record, state="disabled")
-        self.delete_history_button.pack(side=tk.LEFT, padx=(5, 0))
+        self.delete_history_button = ctk.CTkButton(history_frame, text="删除记录", width=80, command=self.delete_history_record, state="disabled")
+        self.delete_history_button.pack(side="left", padx=(5, 0))
         
         # 保存按钮居中放置
-        self.save_inputs_button = ttk.Button(save_button_frame, text="保存录入内容", command=self.save_user_inputs, state="disabled")
+        self.save_inputs_button = ctk.CTkButton(save_button_frame, text="保存录入内容", command=self.save_user_inputs, state="disabled")
         self.save_inputs_button.grid(row=0, column=1, pady=5)
 
         # 配置保存按钮框架的列权重，使按钮能够居中
@@ -2612,30 +2599,37 @@ class DocumentProcessorUI:
         save_button_frame.columnconfigure(2, weight=1)  # 右侧空白区域（用于居中按钮）
         
         right_frame.columnconfigure(0, weight=1)
-        right_frame.rowconfigure(0, weight=1)
+        right_frame.rowconfigure(1, weight=1)
         
         # 控制按钮区域
-        button_frame = ttk.Frame(main_frame)
-        button_frame.grid(row=1, column=0, columnspan=2, pady=(10, 0))
+        button_frame = ctk.CTkFrame(main_frame)
+        button_frame.grid(row=1, column=0, columnspan=2, pady=(10, 0), padx=10, sticky="ew")
+        button_frame.columnconfigure((0,1,2,3,4), weight=1)
         
         # 输出目录选择按钮
-        ttk.Button(button_frame, text="选择输出文件夹", command=self.select_output_dir).grid(row=0, column=0, padx=(0, 10))
-        self.output_dir_label = ttk.Label(button_frame, text=f"输出目录: {self.output_dir}", width=45, anchor="w")
-        self.output_dir_label.grid(row=0, column=1, padx=(0, 10))
+        select_output_button = ctk.CTkButton(button_frame, text="选择输出文件夹", command=self.select_output_dir)
+        select_output_button.grid(row=0, column=0, padx=(0, 10), pady=10, sticky="w")
         
-        self.generate_docs_button = ttk.Button(button_frame, text="生成文档", command=self.generate_documents, state="disabled")
-        self.generate_docs_button.grid(row=0, column=2, padx=(10, 10))
+        self.output_dir_label = ctk.CTkLabel(button_frame, text=f"输出目录: {self.output_dir}", width=45, anchor="w")
+        self.output_dir_label.grid(row=0, column=1, padx=(0, 10), sticky="w")
+        
+        self.generate_docs_button = ctk.CTkButton(button_frame, text="生成文档", command=self.generate_documents, state="disabled")
+        self.generate_docs_button.grid(row=0, column=2, padx=(10, 10), sticky="e")
         
         # 如果PDF功能可用，添加合并为PDF按钮（在打开输出文件夹按钮之前）
         if PDF_CONVERSION_AVAILABLE and PDF_MERGING_AVAILABLE:
-            self.merge_pdf_button = ttk.Button(button_frame, text="合并为PDF", command=self.merge_to_pdf, state="disabled")
-            self.merge_pdf_button.grid(row=0, column=3, padx=(10, 10))
-            ttk.Button(button_frame, text="打开输出文件夹", command=self.open_output_dir).grid(row=0, column=4, padx=(10, 10))
+            self.merge_pdf_button = ctk.CTkButton(button_frame, text="合并为PDF", command=self.merge_to_pdf, state="disabled")
+            self.merge_pdf_button.grid(row=0, column=3, padx=(10, 10), sticky="e")
+            open_output_button = ctk.CTkButton(button_frame, text="打开输出文件夹", command=self.open_output_dir)
+            open_output_button.grid(row=0, column=4, padx=(10, 10), sticky="e")
         elif not PDF_CONVERSION_AVAILABLE or not PDF_MERGING_AVAILABLE:
-            ttk.Button(button_frame, text="合并为PDF(需要安装依赖)", state=tk.DISABLED).grid(row=0, column=3, padx=(10, 10))
-            ttk.Button(button_frame, text="打开输出文件夹", command=self.open_output_dir).grid(row=0, column=4, padx=(10, 10))
+            pdf_disabled_button = ctk.CTkButton(button_frame, text="合并为PDF(需要安装依赖)", state="disabled")
+            pdf_disabled_button.grid(row=0, column=3, padx=(10, 10), sticky="e")
+            open_output_button = ctk.CTkButton(button_frame, text="打开输出文件夹", command=self.open_output_dir)
+            open_output_button.grid(row=0, column=4, padx=(10, 10), sticky="e")
         else:
-            ttk.Button(button_frame, text="打开输出文件夹", command=self.open_output_dir).grid(row=0, column=3, padx=(10, 10))
+            open_output_button = ctk.CTkButton(button_frame, text="打开输出文件夹", command=self.open_output_dir)
+            open_output_button.grid(row=0, column=3, padx=(10, 10), sticky="e")
         
         # 加载已保存的方案
         self.load_saved_schemes()
@@ -2717,12 +2711,9 @@ class DocumentProcessorUI:
         """
         当用户选择方案时，加载该方案的占位符和历史记录
         """
-        selection = self.scheme_listbox_main.curselection()
-        if not selection:
-            return
-
-        # 获取选中的方案名称
-        selected_scheme = self.scheme_listbox_main.get(selection[0])
+        # 获取点击的按钮文本（方案名称）
+        widget = event.widget
+        selected_scheme = widget.cget("text")
         self.current_scheme = selected_scheme
 
         try:
@@ -2768,48 +2759,38 @@ class DocumentProcessorUI:
         启用与方案相关的控件
         """
         # 启用历史记录下拉框
-        self.history_combobox.config(state="readonly")
+        self.history_combobox.configure(state="normal")
         
         # 启用删除记录按钮
-        self.delete_history_button.config(state="normal")
+        self.delete_history_button.configure(state="normal")
         
         # 启用保存录入内容按钮
-        self.save_inputs_button.config(state="normal")
+        self.save_inputs_button.configure(state="normal")
         
         # 启用生成文档和合并为PDF按钮
-        self.generate_docs_button.config(state="normal")
+        self.generate_docs_button.configure(state="normal")
         
         if hasattr(self, 'merge_pdf_button'):
-            self.merge_pdf_button.config(state="normal")
+            self.merge_pdf_button.configure(state="normal")
     
     def disable_scheme_related_controls(self):
         """
         禁用与方案相关的控件
         """
         # 禁用历史记录下拉框
-        self.history_combobox.config(state="disabled")
-        
-        # 禁用保存录入内容按钮（需要通过父框架找到按钮）
-        for widget in self.history_combobox.master.master.winfo_children():
-            if isinstance(widget, tk.Button) and widget.cget("text") == "保存录入内容":
-                widget.config(state="disabled")
-                break
+        self.history_combobox.configure(state="disabled")
         
         # 禁用删除记录按钮
-        for widget in self.history_combobox.master.winfo_children():
-            if isinstance(widget, tk.Button) and widget.cget("text") == "删除记录":
-                widget.config(state="disabled")
-                break
+        self.delete_history_button.configure(state="disabled")
+        
+        # 禁用保存录入内容按钮
+        self.save_inputs_button.configure(state="disabled")
         
         # 禁用生成文档按钮
-        for widget in self.history_combobox.master.master.winfo_children():
-            if isinstance(widget, tk.Frame):  # 控制按钮区域
-                for child in widget.winfo_children():
-                    if isinstance(child, tk.Button) and child.cget("text") == "生成文档":
-                        child.config(state="disabled")
-                    elif isinstance(child, tk.Button) and child.cget("text") == "合并为PDF":
-                        child.config(state="disabled")
-                break
+        self.generate_docs_button.configure(state="disabled")
+        
+        if hasattr(self, 'merge_pdf_button'):
+            self.merge_pdf_button.configure(state="disabled")
     
     def load_scheme_for_main(self, scheme_name):
         """
@@ -2842,24 +2823,45 @@ class DocumentProcessorUI:
                     # 填充上次的用户输入
                     for placeholder, value in last_inputs.items():
                         if placeholder in self.input_fields:
-                            self.input_fields[placeholder].delete(0, tk.END)
-                            self.input_fields[placeholder].insert(0, value)
+                            widget = self.input_fields[placeholder]
+                            if isinstance(widget, ctk.CTkEntry):
+                                widget.delete(0, "end")
+                                widget.insert(0, value)
+                            elif isinstance(widget, ctk.CTkComboBox):
+                                widget.set(value)
+            
+            # 更新历史记录下拉框
+            self.update_history_combobox()
+            
+            # 启用相关按钮和控件
+            self.enable_scheme_related_controls()
+            
+            self.log_and_status(f"已加载方案: {scheme_name}")
             
         except Exception as e:
-            print(f"错误: 加载方案时出错: {e}")
+            self.log_and_status(f"加载方案时出错: {str(e)}")
     
     def load_saved_schemes(self):
         """
         加载已保存的方案到列表框（保留此方法以保持向后兼容）
         """
-        self.scheme_listbox_main.delete(0, tk.END)
+        # 清除现有的方案按钮
+        for widget in self.scheme_scrollable_frame.winfo_children():
+            widget.destroy()
+            
         if os.path.exists("app_data.json"):
             try:
                 with open("app_data.json", "r", encoding="utf-8") as f:
                     data = json.load(f)
                 schemes = data.get("schemes", {})
                 for scheme_name in schemes:
-                    self.scheme_listbox_main.insert(tk.END, scheme_name)
+                    # 为每个方案创建一个按钮
+                    scheme_button = ctk.CTkButton(
+                        self.scheme_scrollable_frame, 
+                        text=scheme_name,
+                        command=lambda name=scheme_name: self.load_scheme_for_main(name)
+                    )
+                    scheme_button.pack(fill="x", padx=5, pady=2)
             except Exception as e:
                 print(f"加载方案时出错: {e}")
     
@@ -3503,7 +3505,8 @@ class DocumentProcessorUI:
         self.input_fields = {}
         for i, placeholder in enumerate(self.ordered_placeholders):
             # 标签
-            ttk.Label(self.input_scrollable_frame, text=f"{placeholder}:").grid(row=i, column=0, sticky=tk.W, pady=2)
+            label = ctk.CTkLabel(self.input_scrollable_frame, text=f"{placeholder}:")
+            label.grid(row=i, column=0, sticky=tk.W, pady=2)
             
             # 获取占位符配置
             config = self.get_placeholder_config(placeholder)
@@ -3512,17 +3515,18 @@ class DocumentProcessorUI:
             if config.get("type") == "combobox":
                 # 创建下拉框，宽度增加到原来的1.5倍 (25 -> 37)
                 options = config.get("options", [])
-                combobox = ttk.Combobox(self.input_scrollable_frame, values=options, width=37, state="readonly")
+                combobox = ctk.CTkComboBox(self.input_scrollable_frame, values=options, width=300, state="readonly")
                 combobox.grid(row=i, column=1, sticky=(tk.W, tk.E), pady=2, padx=(5, 0))
                 self.input_fields[placeholder] = combobox
             elif config.get("type") == "date":
                 # 创建日期选择框
-                date_frame = ttk.Frame(self.input_scrollable_frame)
+                date_frame = ctk.CTkFrame(self.input_scrollable_frame)
                 date_frame.grid(row=i, column=1, sticky=(tk.W, tk.E), pady=2, padx=(5, 0))
+                date_frame.columnconfigure(0, weight=1)
                 
                 # 日期显示标签
                 today = datetime.now().strftime('%Y年%m月%d日')
-                date_label = ttk.Label(date_frame, text=today)
+                date_label = ctk.CTkLabel(date_frame, text=today)
                 date_label.pack(side=tk.LEFT)
                 
                 # 修改日期按钮
@@ -3531,13 +3535,13 @@ class DocumentProcessorUI:
                         self.modify_placeholder_date(label_widget)
                     return modify_command
                 
-                modify_button = ttk.Button(date_frame, text="选择日期", command=create_modify_command(date_label), width=8)
+                modify_button = ctk.CTkButton(date_frame, text="选择日期", command=create_modify_command(date_label), width=80)
                 modify_button.pack(side=tk.LEFT, padx=(5, 0))
                 
                 self.input_fields[placeholder] = date_label
             else:
                 # 创建普通文本框，宽度增加到原来的1.5倍 (25 -> 37)
-                entry = ttk.Entry(self.input_scrollable_frame, width=37)
+                entry = ctk.CTkEntry(self.input_scrollable_frame, width=300)
                 entry.grid(row=i, column=1, sticky=(tk.W, tk.E), pady=2, padx=(5, 0))
                 self.input_fields[placeholder] = entry
             
@@ -3545,19 +3549,22 @@ class DocumentProcessorUI:
         
         # 添加日期字段（自动生成，可选择修改）
         date_row = len(self.ordered_placeholders)
-        ttk.Label(self.input_scrollable_frame, text="日期（自动生成）:").grid(row=date_row, column=0, sticky=tk.W, pady=2)
+        date_label = ctk.CTkLabel(self.input_scrollable_frame, text="日期（自动生成）:")
+        date_label.grid(row=date_row, column=0, sticky=tk.W, pady=2)
         
         # 创建日期显示和修改区域
-        date_frame = ttk.Frame(self.input_scrollable_frame)
+        date_frame = ctk.CTkFrame(self.input_scrollable_frame)
         date_frame.grid(row=date_row, column=1, sticky=tk.W, pady=2, padx=(5, 0))
+        date_frame.columnconfigure(0, weight=1)
         
         # 日期显示标签
         today = datetime.now().strftime('%Y年%m月%d日')
-        self.date_label = ttk.Label(date_frame, text=today)
+        self.date_label = ctk.CTkLabel(date_frame, text=today)
         self.date_label.pack(side=tk.LEFT)
         
         # 修改日期按钮
-        ttk.Button(date_frame, text="选择日期", command=self.modify_date, width=8).pack(side=tk.LEFT, padx=(5, 0))
+        modify_date_button = ctk.CTkButton(date_frame, text="选择日期", command=self.modify_date, width=80)
+        modify_date_button.pack(side=tk.LEFT, padx=(5, 0))
         
         # 将日期存储在input_fields中
         self.input_fields['日期'] = today
@@ -3573,13 +3580,13 @@ class DocumentProcessorUI:
                 for placeholder, value in last_inputs.items():
                     if placeholder in self.input_fields:
                         widget = self.input_fields[placeholder]
-                        if isinstance(widget, ttk.Combobox):
+                        if isinstance(widget, ctk.CTkComboBox):
                             # 对于下拉框，检查值是否在选项中，如果不在则添加
-                            current_values = list(widget['values'])
+                            current_values = list(widget.cget("values"))
                             if value not in current_values and value:
                                 # 添加新值到选项中
                                 current_values.append(value)
-                                widget['values'] = current_values
+                                widget.configure(values=current_values)
                             # 设置当前值
                             widget.set(value)
         
@@ -4356,7 +4363,11 @@ def main():
     """
     主函数
     """
-    root = tk.Tk()
+    # 设置CustomTkinter的外观模式和颜色主题
+    ctk.set_appearance_mode("System")  # 可选: "Light", "Dark", "System"
+    ctk.set_default_color_theme("blue")  # 可选: "blue", "green", "dark-blue"
+    
+    root = ctk.CTk()
     app = DocumentProcessorUI(root)
     root.mainloop()
 
