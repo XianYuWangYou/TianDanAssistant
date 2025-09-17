@@ -1042,7 +1042,7 @@ class DocumentProcessorUI:
         # 添加版本信息
         version_frame = ttk.Frame(update_frame)
         version_frame.grid(row=1, column=0, columnspan=2, pady=(10, 0), sticky=(tk.W, tk.E))
-        ttk.Label(version_frame, text="当前版本: v1.1.4").pack(anchor=tk.W)
+        ttk.Label(version_frame, text="当前版本: v1.1.5").pack(anchor=tk.W)
         
         # 关于区域
         about_frame = ttk.LabelFrame(options_frame, text="关于", padding="10")
@@ -4158,7 +4158,7 @@ class DocumentProcessorUI:
             
             # 初始化所有文件状态为等待
             for filename in all_files:
-                if hasattr(self, 'pdf_progress_window'):
+                if hasattr(self, 'pdf_progress_window') and self.pdf_progress_window:
                     self.root.after(0, lambda f=filename: self.update_pdf_progress(f, "waiting"))
             
             pdf_files = []  # 初始化pdf_files列表
@@ -4202,14 +4202,30 @@ class DocumentProcessorUI:
             
             self.log_and_status(f"成功: PDF合并完成！文件已保存为: {os.path.basename(merged_pdf_path)}")
             
-            # 启用关闭按钮
-            if hasattr(self, 'pdf_progress_window'):
+            # 启用关闭按钮并在任务完成后自动关闭进度窗口
+            if hasattr(self, 'pdf_progress_window') and self.pdf_progress_window:
                 self.root.after(0, lambda: self.close_progress_button.config(state=tk.NORMAL))
+                # 任务完成后2秒自动关闭进度窗口
+                self.root.after(2000, self._auto_close_pdf_progress)
         except Exception as e:
             error_msg = f"错误: 合并PDF时出错：{str(e)}"
             self.log_and_status(error_msg)
             # 使用状态栏显示替代弹窗提示，符合用户偏好
             self.update_status("请重启软件并关闭所有office相关软件。")
+            # 出错时也自动关闭进度窗口
+            if hasattr(self, 'pdf_progress_window') and self.pdf_progress_window:
+                self.root.after(2000, self._auto_close_pdf_progress)
+
+    def _auto_close_pdf_progress(self):
+        """
+        自动关闭PDF进度窗口
+        """
+        if hasattr(self, 'pdf_progress_window') and self.pdf_progress_window:
+            try:
+                self.pdf_progress_window.destroy()
+                self.pdf_progress_window = None
+            except:
+                pass
     
     def _pdf_progress_callback(self, filename, status):
         """
