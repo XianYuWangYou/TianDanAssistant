@@ -8,7 +8,7 @@ from tkinter import ttk
 from typing import Optional, Dict, Any
 
 # 当前版本号
-CURRENT_VERSION = "v1.1.0"
+CURRENT_VERSION = "v2.0.0"
 
 
 class AutoUpdater:
