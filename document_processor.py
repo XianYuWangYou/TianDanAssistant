@@ -2,6 +2,8 @@ import os
 import re
 import json
 import threading
+import os
+from PIL import Image, ImageTk
 from datetime import datetime
 from docx import Document
 import tkinter as tk
@@ -1090,10 +1092,60 @@ class DocumentProcessorUI:
         forum_link.pack(side=tk.LEFT, padx=(5, 0))
         forum_link.bind("<Button-1>", lambda e: self.open_github_link())
 
+        # 捐助区域
+        donate_frame = ttk.LabelFrame(options_frame, text="支持开发者", padding="10")
+        donate_frame.grid(row=4, column=0, sticky=(tk.W, tk.E), pady=(0, 20))
+        donate_frame.columnconfigure(0, weight=1)
+        
+        # 捐助说明文字
+        donate_text = ttk.Label(donate_frame,
+                               text="如果您觉得这个软件对您有帮助，欢迎扫码捐赠支持开发者！您的支持是我持续改进软件的动力。",
+                               justify=tk.CENTER)
+        donate_text.grid(row=0, column=0, pady=(0, 10), sticky=tk.W)
+        
+        # 尝试加载并显示捐助二维码图片
+        donate_qr_image = None
+        donate_qr_label = None
+        try:
+            # 获取图片路径
+            image_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "images", "捐赠.jpg")
+            if os.path.exists(image_path):
+                # 加载并调整图片大小
+                image = Image.open(image_path)
+                image = image.resize((250, 150), Image.Resampling.LANCZOS)  # 调整图片大小
+                donate_qr_image = ImageTk.PhotoImage(image)
+                
+                # 显示图片
+                donate_qr_label = ttk.Label(donate_frame, image=donate_qr_image)
+                donate_qr_label.grid(row=2, column=0, pady=(0, 10), sticky=tk.W)
+                # 保存图片引用，防止被垃圾回收
+                donate_qr_label.image = donate_qr_image
+            else:
+                # 图片文件不存在，显示占位符
+                donate_qr_placeholder = ttk.Label(donate_frame,
+                                                 text="[捐助二维码图片未找到]",
+                                                 relief=tk.SUNKEN,
+                                                 padding=20)
+                donate_qr_placeholder.grid(row=2, column=0, pady=(0, 10), sticky=tk.W)
+        except ImportError:
+            # PIL库未安装，显示占位符
+            donate_qr_placeholder = ttk.Label(donate_frame,
+                                             text="[需要安装PIL库以显示图片]",
+                                             relief=tk.SUNKEN,
+                                             padding=20)
+            donate_qr_placeholder.grid(row=2, column=0, pady=(0, 10), sticky=tk.W)
+        except Exception as e:
+            # 其他错误，显示占位符
+            donate_qr_placeholder = ttk.Label(donate_frame,
+                                             text=f"[图片加载失败: {str(e)}]",
+                                             relief=tk.SUNKEN,
+                                             padding=20)
+            donate_qr_placeholder.grid(row=2, column=0, pady=(0, 10), sticky=tk.W)
+        
         # 添加空白区域以填充空间
-        options_frame.rowconfigure(4, weight=1)
+        options_frame.rowconfigure(5, weight=1)
         spacer_frame = ttk.Frame(options_frame)
-        spacer_frame.grid(row=4, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        spacer_frame.grid(row=5, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
 
     def open_forum_link(self):
         """
