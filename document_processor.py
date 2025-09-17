@@ -4124,16 +4124,25 @@ class DocumentProcessorUI:
         """
         在线程中执行PDF合并操作
         """
-        if not hasattr(self, 'generated_files') or not self.generated_files:
-            self.log_and_status("警告: 请先生成文档")
+        # 修改为直接读取输出文件夹中的所有文档
+        if not os.path.exists(self.output_dir):
+            self.log_and_status("警告: 输出文件夹不存在")
             return
         
-        # 检查是否有需要转换为PDF的文件
-        docx_files = [f for f in self.generated_files if f.endswith('.docx')]
-        xlsx_files = [f for f in self.generated_files if f.endswith('.xlsx')]
+        # 获取输出文件夹中的所有文档文件
+        docx_files = []
+        xlsx_files = []
+        
+        for file in os.listdir(self.output_dir):
+            file_path = os.path.join(self.output_dir, file)
+            if os.path.isfile(file_path):
+                if file.endswith('.docx') and not file.endswith('.pdf'):
+                    docx_files.append(file_path)
+                elif file.endswith('.xlsx'):
+                    xlsx_files.append(file_path)
         
         if not docx_files and not xlsx_files:
-            self.log_and_status("警告: 没有找到可转换为PDF的文档")
+            self.log_and_status("警告: 输出文件夹中没有找到可转换为PDF的文档")
             return
         
         try:
