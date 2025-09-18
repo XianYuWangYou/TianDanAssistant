@@ -612,6 +612,8 @@ class DocumentProcessorUI:
         :param root: Tkinter根窗口
         """
         self.root = root
+        # 设置窗口图标
+        self.set_dialog_icon(root)
         # 将窗口居中显示
         self.center_window()
         self.root.title("文档表格批量填写助手")

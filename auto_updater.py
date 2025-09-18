@@ -387,6 +387,7 @@ class AutoUpdaterUI:
     
     def __init__(self, root):
         self.root = root
+        self.set_window_icon(root)
         self.root.title("填单助手 - 自动更新程序")
         self.root.geometry("500x400")
         self.root.resizable(False, False)
@@ -471,6 +472,23 @@ class AutoUpdaterUI:
         # 退出按钮
         ttk.Button(button_frame, text="退出", command=self.root.destroy).pack(side=tk.RIGHT)
     
+    def set_window_icon(self, window):
+        """
+        设置窗口图标
+        :param window: 窗口对象
+        """
+        try:
+            # 获取项目根目录
+            root_dir = os.path.dirname(os.path.abspath(__file__))
+            icon_path = os.path.join(root_dir, 'icon.ico')
+            
+            # 如果图标文件存在，则设置窗口图标
+            if os.path.exists(icon_path):
+                window.iconbitmap(icon_path)
+        except Exception as e:
+            # 如果设置图标失败，不中断程序运行
+            print(f"设置窗口图标失败: {e}")
+            pass
     def check_updates(self):
         """
         检查更新
