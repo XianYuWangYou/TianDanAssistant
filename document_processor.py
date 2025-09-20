@@ -5,7 +5,14 @@ import threading
 from datetime import datetime
 from docx import Document
 import tkinter as tk
-import customtkinter as ctk
+# 尝试导入customtkinter，如果失败则使用标准tkinter作为备选
+try:
+    import customtkinter as ctk
+    USE_CUSTOMTKINTER = True
+except ImportError:
+    print("警告: 未安装customtkinter，将使用标准tkinter替代")
+    import tkinter as ctk
+    USE_CUSTOMTKINTER = False
 from tkinter import filedialog, ttk
 import docx
 from openpyxl import Workbook, load_workbook
