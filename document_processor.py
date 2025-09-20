@@ -902,7 +902,7 @@ class DocumentProcessorUI:
         
         # 创建状态栏（提前创建，确保其他组件可以使用）
         self.status_bar = ttk.Label(self.root, text="就绪", relief=tk.SUNKEN, anchor=tk.W)
-        self.status_bar.pack(side=tk.BOTTOM, fill=tk.X)
+        self.status_bar.pack(side=tk.BOTTOM, fill=tk.X, before=self.notebook)
         
         self.setup_main_tab()
         self.setup_config_tab()
