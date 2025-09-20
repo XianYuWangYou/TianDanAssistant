@@ -612,6 +612,8 @@ class DocumentProcessorUI:
         :param root: Tkinter根窗口
         """
         self.root = root
+        # 隐藏窗口直到初始化完成
+        self.root.withdraw()
         # 设置窗口图标
         self.set_dialog_icon(root)
         # 将窗口居中显示
@@ -629,6 +631,9 @@ class DocumentProcessorUI:
         self.output_dir = self.load_last_output_dir()  # 输出目录，默认从配置加载
         
         self.setup_ui()
+
+        # 显示窗口
+        self.root.deiconify()
     
     def center_window(self):
         """
